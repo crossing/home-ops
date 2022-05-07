@@ -1,35 +1,34 @@
 {
   inputs = {
     nixpkgs.url = "nixpkgs/nixos-21.11";
+
     nixos-generators = {
       url = "github:nix-community/nixos-generators";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    flake-utils.url = "github:numtide/flake-utils";
   };
 
-  outputs = { self, nixpkgs, nixos-generators, ... }:
+  outputs = { self, nixpkgs, flake-utils, nixos-generators, ... }:
     let
-      build = name:
-        let
-          spec = import (./instances + "/${name}.nix");
-          hostnameModule = { ... }: {
-            networking.hostName = spec.hostname;
-            networking.useDHCP = true;
-          };
-        in
-        nixos-generators.nixosGenerate {
-          pkgs = import nixpkgs {
-            inherit (spec) system;
-            config = { allowUnfree = true; };
-          };
-          inherit (spec) format;
-          modules = spec.modules ++ [ hostnameModule ];
-        };
+      hosts = import ./hosts.nix {
+        inherit nixpkgs;
+        inherit (nixpkgs) lib;
+        inherit nixos-generators;
+      };
     in
     {
-      packages.x86_64-linux = nixpkgs.lib.genAttrs [
-        "unifi-controller"
-      ]
-        build;
-    };
+      colmena = { meta.nixpkgs = import nixpkgs { }; } // hosts.deployments;
+    } //
+    flake-utils.lib.eachDefaultSystem (system:
+      let pkgs = import nixpkgs { inherit system; };
+      in
+      {
+        packages = hosts.images;
+
+        devShell = pkgs.mkShell {
+          buildInputs = [ pkgs.colmena ];
+        };
+      });
 }

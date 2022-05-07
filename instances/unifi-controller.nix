@@ -6,5 +6,5 @@
 
   format = "sd-aarch64";
   system = "aarch64-linux";
-  hostname = "unifi";
+  hostname = "pi";
 }
