@@ -4,4 +4,8 @@
     enable = true;
     unifiPackage = pkgs.unifi;
   };
+
+  networking.firewall.allowedTCPPorts = [
+    8443
+  ];
 }
