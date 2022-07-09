@@ -1,7 +1,8 @@
+{ ... }:
 {
   modules = [
-    ../roles/ssh.nix
-    ../roles/unifi.nix
+    ../../roles/ssh.nix
+    ../../roles/unifi.nix
   ];
 
   format = "sd-aarch64";

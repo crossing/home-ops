@@ -7,18 +7,19 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    nixos-hardware.url = "github:NixOS/nixos-hardware";
     flake-utils.url = "github:numtide/flake-utils";
   };
 
-  outputs = { self, nixpkgs, flake-utils, nixos-generators, ... }:
+  outputs = { self, nixpkgs, flake-utils, nixos-generators, nixos-hardware, ... }:
     let
       hosts = import ./hosts.nix {
-        inherit nixpkgs nixos-generators;
+        inherit nixpkgs nixos-generators nixos-hardware;
       };
     in
     {
       colmena = { meta.nixpkgs = import nixpkgs { }; } // hosts.deployments;
-      inherit (hosts) images;
+      inherit (hosts) images nixosConfigurations;
     } //
     flake-utils.lib.eachDefaultSystem (system:
       let pkgs = import nixpkgs { inherit system; };

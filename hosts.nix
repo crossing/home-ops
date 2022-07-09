@@ -1,14 +1,19 @@
-{ nixpkgs, nixos-generators }:
+{ nixpkgs, nixos-generators, nixos-hardware }:
 let
   inherit (nixpkgs) lib;
   modules = spec:
     let
       hostnameModule = { ... }: {
         networking.hostName = spec.hostname;
-        networking.useDHCP = true;
+        networking.useDHCP = lib.mkDefault true;
       };
     in
     spec.modules ++ [ hostnameModule ];
+
+  config = spec: nixpkgs.lib.nixosSystem {
+    inherit (spec) system;
+    modules = (modules spec);
+  };
 
   image = spec: nixos-generators.nixosGenerate {
     pkgs = import nixpkgs {
@@ -39,13 +44,19 @@ let
 
   mapHost = f: name:
     let
-      spec = import (./instances + "/${name}.nix");
+      spec = import (./instances + "/${name}/") {
+        inherit nixos-hardware;
+      };
     in
     f spec;
 
-  hosts = [ "unifi-controller" ];
+  hosts = [
+    "unifi-controller"
+    "laptop"
+  ];
 in
 {
+  nixosConfigurations = lib.genAttrs hosts (mapHost config);
   images = lib.genAttrs hosts (mapHost image);
   deployments = lib.genAttrs hosts (mapHost deployment);
 }
