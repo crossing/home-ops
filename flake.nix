@@ -1,6 +1,6 @@
 {
   inputs = {
-    nixpkgs.url = "nixpkgs/nixos-21.11";
+    nixpkgs.url = "nixpkgs/nixos-22.05";
 
     nixos-generators = {
       url = "github:nix-community/nixos-generators";
@@ -13,20 +13,17 @@
   outputs = { self, nixpkgs, flake-utils, nixos-generators, ... }:
     let
       hosts = import ./hosts.nix {
-        inherit nixpkgs;
-        inherit (nixpkgs) lib;
-        inherit nixos-generators;
+        inherit nixpkgs nixos-generators;
       };
     in
     {
       colmena = { meta.nixpkgs = import nixpkgs { }; } // hosts.deployments;
+      inherit (hosts) images;
     } //
     flake-utils.lib.eachDefaultSystem (system:
       let pkgs = import nixpkgs { inherit system; };
       in
       {
-        packages = hosts.images;
-
         devShell = pkgs.mkShell {
           buildInputs = [ pkgs.colmena ];
         };

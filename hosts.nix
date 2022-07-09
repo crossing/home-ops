@@ -1,6 +1,6 @@
-{ nixpkgs, lib, nixos-generators }:
+{ nixpkgs, nixos-generators }:
 let
-  getSpec = name: import (./instances + "/${name}.nix");
+  inherit (nixpkgs) lib;
   modules = spec:
     let
       hostnameModule = { ... }: {
@@ -10,22 +10,17 @@ let
     in
     spec.modules ++ [ hostnameModule ];
 
-  image = name:
-    let
-      spec = getSpec name;
-    in
-    nixos-generators.nixosGenerate {
-      pkgs = import nixpkgs {
-        inherit (spec) system;
-        config = { allowUnfree = true; };
-      };
-      inherit (spec) format;
-      modules = modules spec;
+  image = spec: nixos-generators.nixosGenerate {
+    pkgs = import nixpkgs {
+      inherit (spec) system;
+      config = { allowUnfree = true; };
     };
+    inherit (spec) format;
+    modules = modules spec;
+  };
 
-  deployment = name:
+  deployment = spec:
     let
-      spec = getSpec name;
       formatModule = nixos-generators.nixosModules."${spec.format}";
     in
     { name, nodes, pkgs, ... }: {
@@ -42,9 +37,15 @@ let
       };
     };
 
+  mapHost = f: name:
+    let
+      spec = import (./instances + "/${name}.nix");
+    in
+    f spec;
+
   hosts = [ "unifi-controller" ];
 in
 {
-  images = lib.genAttrs hosts image;
-  deployments = lib.genAttrs hosts deployment;
+  images = lib.genAttrs hosts (mapHost image);
+  deployments = lib.genAttrs hosts (mapHost deployment);
 }
