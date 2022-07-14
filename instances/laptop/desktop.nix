@@ -12,11 +12,11 @@
     layout = "gb,us";
     xkbVariant = "intl,altgr-intl";
   };
-  
+
   programs.sway.enable = true;
   xdg.portal.wlr.enable = true;
 
-  programs.dconf.enable = true;  
+  programs.dconf.enable = true;
   programs._1password-gui = {
     enable = true;
     gid = 5000;
@@ -27,6 +27,11 @@
     chrome-gnome-shell.enable = true;
     gnome-settings-daemon.enable = true;
   };
+
+  environment.systemPackages = with pkgs; [
+    gnome.gnome-tweaks
+    gnomeExtensions.dash-to-dock
+  ];
 
   environment.gnome.excludePackages = with pkgs; [
     gnome.gnome-music
