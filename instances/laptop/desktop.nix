@@ -42,4 +42,11 @@
   i18n.inputMethod.ibus.engines = with pkgs.ibus-engines; [
     libpinyin
   ];
+
+  services.printing = {
+    enable = true;
+    drivers = [ pkgs.hplipWithPlugin ];
+  };
+
+  services.system-config-printer.enable = true;
 }
