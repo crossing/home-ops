@@ -1,0 +1,26 @@
+name: Auto Upgrade
+on:
+  schedule:
+  - cron: '0 0 * * 0'
+  workflow_dispatch: {}
+jobs:
+  upgrade:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        fetch-depth: '0'
+    - name: install nix
+      uses: cachix/install-nix-actions@v17
+      with:
+        extra_nix_config: |
+          experimental-features = nix-command flakes
+    - name: nix flake update
+      run: nix flake update
+    - name: push changes back to repo
+      run: |
+        git add flake.lock
+        git config user.name "Github Actions"
+        git config user.email "<>"
+        git commit -m "Auto upgrade"
+        git push
