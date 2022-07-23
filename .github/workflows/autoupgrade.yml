@@ -17,10 +17,14 @@ jobs:
           experimental-features = nix-command flakes
     - name: nix flake update
       run: nix flake update
-    - name: push changes back to repo
+    - name: commit changes
       run: |
         git add flake.lock
         git config user.name "Github Actions"
         git config user.email "<>"
         git commit -m "Auto upgrade"
-        git push
+    - name: push changes back to repo
+      uses: ad-m/github-push-action@master
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        branch: ${{ github.ref }}
