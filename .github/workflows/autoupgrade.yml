@@ -22,7 +22,9 @@ jobs:
         git add flake.lock
         git config user.name "Github Actions"
         git config user.email "<>"
-        git commit -m "Auto upgrade"
+        if [ -n "$(git status -s)" ]; then
+          git commit -m "Auto upgrade"
+        fi
     - name: push changes back to repo
       uses: ad-m/github-push-action@master
       with:
