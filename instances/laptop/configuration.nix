@@ -37,6 +37,12 @@
     allowUnfree = true;
   };
 
+  system.autoUpgrade = {
+    enable = true;
+    flake = "github:crossing/home-ops#laptop";
+    dates = "Sun *-*-* 01:00:00";
+  };
+
   system.stateVersion = "22.05";
 }
 
