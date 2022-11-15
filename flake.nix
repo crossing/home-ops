@@ -7,14 +7,26 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    home-manager = {
+      url = "github:nix-community/home-manager/release-22.05";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     nixos-hardware.url = "github:NixOS/nixos-hardware";
     flake-utils.url = "github:numtide/flake-utils";
   };
 
-  outputs = { self, nixpkgs, flake-utils, nixos-generators, nixos-hardware, ... }:
+  outputs = {
+    self,
+    nixpkgs,
+    flake-utils,
+    nixos-generators,
+    nixos-hardware,
+    home-manager,
+    ... }:
     let
       hosts = import ./hosts.nix {
-        inherit nixpkgs nixos-generators nixos-hardware;
+        inherit nixpkgs nixos-generators nixos-hardware home-manager;
       };
     in
     {

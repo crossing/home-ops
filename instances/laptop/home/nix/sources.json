@@ -1,0 +1,38 @@
+{
+    "niv": {
+        "branch": "master",
+        "description": "Easy dependency management for Nix projects",
+        "homepage": "https://github.com/nmattia/niv",
+        "owner": "nmattia",
+        "repo": "niv",
+        "rev": "82e5cd1ad3c387863f0545d7591512e76ab0fc41",
+        "sha256": "090l219mzc0gi33i3psgph6s2pwsc8qy4lyrqjdj4qzkvmaj65a7",
+        "type": "tarball",
+        "url": "https://github.com/nmattia/niv/archive/82e5cd1ad3c387863f0545d7591512e76ab0fc41.tar.gz",
+        "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
+    },
+    "zsh-aws-vault": {
+        "branch": "main",
+        "description": "oh-my-zsh plugin for aws-vault",
+        "homepage": null,
+        "owner": "blimmer",
+        "repo": "zsh-aws-vault",
+        "rev": "818fc96a73512dd86bfcad850c430e974fd53d78",
+        "sha256": "037rr8ndmhrg5xdn6v1m7c9hwkfql7gsyy4glr84760fyb0w3v2s",
+        "type": "tarball",
+        "url": "https://github.com/blimmer/zsh-aws-vault/archive/818fc96a73512dd86bfcad850c430e974fd53d78.tar.gz",
+        "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
+    },
+    "zsh-nix-shell": {
+        "branch": "master",
+        "description": "zsh plugin that lets you use zsh in nix-shell shells.",
+        "homepage": "",
+        "owner": "chisui",
+        "repo": "zsh-nix-shell",
+        "rev": "af6f8a266ea1875b9a3e86e14796cadbe1cfbf08",
+        "sha256": "1x6941n43j3fh1zd82v9gzr83d70gasf1s7rh6fzlby4ha20qf06",
+        "type": "tarball",
+        "url": "https://github.com/chisui/zsh-nix-shell/archive/af6f8a266ea1875b9a3e86e14796cadbe1cfbf08.tar.gz",
+        "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
+    }
+}
