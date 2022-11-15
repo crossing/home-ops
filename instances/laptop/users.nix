@@ -1,7 +1,7 @@
 { config, lib, pkgs, ... }:
 {
   options.primaryUser = lib.mkOption {
-      type = lib.types.str;
+    type = lib.types.str;
   };
 
   config = {

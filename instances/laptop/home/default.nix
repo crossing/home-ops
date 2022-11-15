@@ -1,4 +1,4 @@
-{ config, lib, home-manager, ...}:
+{ config, lib, home-manager, ... }:
 {
   home-manager = {
     useGlobalPkgs = true;

@@ -16,14 +16,15 @@
     flake-utils.url = "github:numtide/flake-utils";
   };
 
-  outputs = {
-    self,
-    nixpkgs,
-    flake-utils,
-    nixos-generators,
-    nixos-hardware,
-    home-manager,
-    ... }:
+  outputs =
+    { self
+    , nixpkgs
+    , flake-utils
+    , nixos-generators
+    , nixos-hardware
+    , home-manager
+    , ...
+    }:
     let
       hosts = import ./hosts.nix {
         inherit nixpkgs nixos-generators nixos-hardware home-manager;
@@ -34,11 +35,11 @@
       inherit (hosts) images nixosConfigurations;
     } //
     flake-utils.lib.eachDefaultSystem (system:
-      let pkgs = import nixpkgs { inherit system; };
-      in
-      {
-        devShell = pkgs.mkShell {
-          buildInputs = [ pkgs.colmena ];
-        };
-      });
+    let pkgs = import nixpkgs { inherit system; };
+    in
+    {
+      devShell = pkgs.mkShell {
+        buildInputs = [ pkgs.colmena ];
+      };
+    });
 }
