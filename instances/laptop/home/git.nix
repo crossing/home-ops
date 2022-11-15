@@ -13,6 +13,8 @@
 
     extraConfig = {
       credential.helper = "libsecret";
+      pull.rebase = true;
+      rebase.autoStash = true;
     };
   };
 
