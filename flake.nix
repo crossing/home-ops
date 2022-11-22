@@ -1,6 +1,6 @@
 {
   inputs = {
-    nixpkgs.url = "nixpkgs/nixos-22.05";
+    nixpkgs.url = "nixpkgs/release-22.11";
 
     nixos-generators = {
       url = "github:nix-community/nixos-generators";

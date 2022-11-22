@@ -19,12 +19,11 @@
   programs.dconf.enable = true;
   programs._1password-gui = {
     enable = true;
-    gid = 5000;
   };
 
   services.pipewire.enable = true;
   services.gnome = {
-    chrome-gnome-shell.enable = true;
+    gnome-browser-connector.enable = true;
     gnome-settings-daemon.enable = true;
   };
 
