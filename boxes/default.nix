@@ -1,4 +1,4 @@
-{ nixpkgs, nixos-generators, nixos-hardware, home-manager }:
+{ nixpkgs, nixos-generators, nixos-hardware, home-manager, ... }:
 let
   inherit (nixpkgs) lib;
   modules = spec:
@@ -44,7 +44,7 @@ let
 
   mapHost = f: name:
     let
-      spec = import (./boxes + "/${name}/") {
+      spec = import ("./${name}/") {
         inherit nixos-hardware home-manager;
       };
     in
