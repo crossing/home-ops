@@ -19,7 +19,7 @@
   outputs = { self, nixpkgs, flake-utils, ... }@args:
     let
       inherit (nixpkgs) lib;
-      inputs = lib.drop 1 args;
+      inputs = lib.filterAttrs (name: _: name != "self") args;
       hosts = import ./boxes inputs;
     in
     {

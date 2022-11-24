@@ -1,10 +1,12 @@
 { nixos-hardware, home-manager, ... }:
 {
   modules = [
-    ./configuration.nix
+    ../../roles/laptop
+    ../../roles/home
+    ./boot.nix
+    ./hardware.nix
     nixos-hardware.nixosModules.dell-xps-15-7590
     home-manager.nixosModules.home-manager
-    ./home
   ];
 
   format = "install-iso";

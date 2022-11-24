@@ -1,8 +1,7 @@
 { ... }:
 {
   modules = [
-    ../../modules/ssh.nix
-    ../../modules/unifi.nix
+    ../../roles/unifi-controller
   ];
 
   format = "sd-aarch64";

@@ -44,7 +44,7 @@ let
 
   mapHost = f: name:
     let
-      spec = import ("./${name}/") {
+      spec = import (./. + "/${name}/") {
         inherit nixos-hardware home-manager;
       };
     in
