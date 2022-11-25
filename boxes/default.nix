@@ -1,41 +1,27 @@
 { nixpkgs, nixos-generators, nixos-hardware, home-manager, ... }:
 let
   inherit (nixpkgs) lib;
-  modules = spec:
-    let
-      hostnameModule = { ... }: {
-        networking.hostName = spec.hostname;
-        networking.useDHCP = lib.mkDefault true;
-      };
-    in
-    spec.modules ++ [ hostnameModule ];
+  modules = spec: spec.modules;
 
   config = spec: nixpkgs.lib.nixosSystem {
     inherit (spec) system;
     modules = (modules spec);
   };
 
-  image = spec: nixos-generators.nixosGenerate {
-    pkgs = import nixpkgs {
-      inherit (spec) system;
-      config = { allowUnfree = true; };
-    };
-    inherit (spec) format;
-    modules = modules spec;
-  };
-
   deployment = spec:
+    { name, nodes, pkgs, ... }:
     let
-      formatModule = nixos-generators.nixosModules."${spec.format}";
+      conf = config spec;
+      hostname = conf.config.networking.hostName;
     in
-    { name, nodes, pkgs, ... }: {
+    {
       deployment = {
-        targetHost = spec.hostname;
+        targetHost = hostname;
         targetUser = "root";
         replaceUnknownProfiles = false;
       };
 
-      imports = (modules spec) ++ [ formatModule ];
+      imports = modules spec;
       nixpkgs = {
         inherit (spec) system;
         config.allowUnfree = true;
@@ -45,7 +31,7 @@ let
   mapHost = f: name:
     let
       spec = import (./. + "/${name}/") {
-        inherit nixos-hardware home-manager;
+        inherit nixos-hardware home-manager nixos-generators;
       };
     in
     f spec;
@@ -57,6 +43,5 @@ let
 in
 {
   nixosConfigurations = lib.genAttrs hosts (mapHost config);
-  images = lib.genAttrs hosts (mapHost image);
   deployments = lib.genAttrs hosts (mapHost deployment);
 }

@@ -21,10 +21,12 @@
       inherit (nixpkgs) lib;
       inputs = lib.filterAttrs (name: _: name != "self") args;
       hosts = import ./boxes inputs;
+      images = import ./images inputs;
     in
     {
       colmena = { meta.nixpkgs = import nixpkgs { }; } // hosts.deployments;
-      inherit (hosts) images nixosConfigurations;
+      inherit (hosts) nixosConfigurations;
+      inherit images;
     } //
     flake-utils.lib.eachDefaultSystem (system:
       let pkgs = import nixpkgs { inherit system; };
