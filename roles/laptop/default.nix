@@ -6,9 +6,6 @@
 {
   imports =
     [
-      # Include the results of the hardware scan.
-      ./boot.nix
-      ./hardware-configuration.nix
       ./users.nix
       ./desktop.nix
       ./development.nix
