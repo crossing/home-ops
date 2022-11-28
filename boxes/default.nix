@@ -1,30 +1,21 @@
-{ nixpkgs, nixos-generators, nixos-hardware, home-manager, ... }:
+{ nixpkgs, nixos-generators, nixos-hardware, home-manager, deploy-rs, ... }:
 let
   inherit (nixpkgs) lib;
-  modules = spec: spec.modules;
 
   config = spec: nixpkgs.lib.nixosSystem {
-    inherit (spec) system;
-    modules = (modules spec);
+    inherit (spec) system modules;
   };
 
-  deployment = spec:
-    { name, nodes, pkgs, ... }:
+  deploy = spec:
     let
-      conf = config spec;
-      hostname = conf.config.networking.hostName;
+      nixosConfiguration = config spec;
     in
     {
-      deployment = {
-        targetHost = hostname;
-        targetUser = "root";
-        replaceUnknownProfiles = false;
-      };
-
-      imports = modules spec;
-      nixpkgs = {
-        inherit (spec) system;
-        config.allowUnfree = true;
+      hostname = nixosConfiguration.config.networking.hostName;
+      profiles.system = {
+        user = "root";
+        sshUser = "root";
+        path = deploy-rs.lib.${spec.system}.activate.nixos nixosConfiguration;
       };
     };
 
@@ -43,5 +34,5 @@ let
 in
 {
   nixosConfigurations = lib.genAttrs hosts (mapHost config);
-  deployments = lib.genAttrs hosts (mapHost deployment);
+  deploy.nodes = lib.genAttrs hosts (mapHost deploy);
 }

@@ -12,6 +12,8 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    deploy-rs.url = "github:serokell/deploy-rs";
+
     nixos-hardware.url = "github:NixOS/nixos-hardware";
     flake-utils.url = "github:numtide/flake-utils";
   };
@@ -24,16 +26,17 @@
       images = import ./images inputs;
     in
     {
-      colmena = { meta.nixpkgs = import nixpkgs { }; } // hosts.deployments;
-      inherit (hosts) nixosConfigurations;
+      inherit (hosts) nixosConfigurations deploy;
       inherit images;
     } //
     flake-utils.lib.eachDefaultSystem (system:
       let pkgs = import nixpkgs { inherit system; };
       in
       {
-        devShell = pkgs.mkShell {
-          buildInputs = [ pkgs.colmena ];
+        devShells.default = pkgs.mkShell {
+          buildInputs = [
+            pkgs.deploy-rs
+          ];
         };
       });
 }
