@@ -85,6 +85,9 @@
     # rclone
     pkgs.rclone
     pkgs.rclone-browser
+
+    # conferencing
+    pkgs.teams
   ];
 
   # Let Home Manager install and manage itself.
