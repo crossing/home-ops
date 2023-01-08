@@ -21,7 +21,6 @@
     enable = true;
   };
 
-  services.pipewire.enable = true;
   services.gnome = {
     gnome-browser-connector.enable = true;
     gnome-settings-daemon.enable = true;

@@ -8,6 +8,7 @@
     [
       ./users.nix
       ./desktop.nix
+      ./audio.nix
       ./development.nix
       ./printer-scanner.nix
     ];
