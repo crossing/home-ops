@@ -1,6 +1,6 @@
 { config, pkgs, lib, ... }:
 {
-    fonts.fontconfig.enable = lib.mkForce true;
+  fonts.fontconfig.enable = lib.mkForce true;
 
   home.packages = with pkgs; [
     (nerdfonts.override { fonts = [ "FiraCode" "SourceCodePro" ]; })

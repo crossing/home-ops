@@ -47,7 +47,7 @@
   programs.firefox = {
     enable = true;
     policies = {
-      ExtensionSettings = {};
+      ExtensionSettings = { };
     };
     package = pkgs.firefox.override {
       cfg = {
