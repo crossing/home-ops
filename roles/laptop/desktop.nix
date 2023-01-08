@@ -14,7 +14,10 @@
   };
 
   programs.sway.enable = true;
-  xdg.portal.wlr.enable = true;
+  xdg.portal = {
+    enable = true;
+    wlr.enable = true;
+  };
 
   programs.dconf.enable = true;
   programs._1password-gui = {
@@ -40,4 +43,17 @@
   i18n.inputMethod.ibus.engines = with pkgs.ibus-engines; [
     libpinyin
   ];
+
+  programs.firefox = {
+    enable = true;
+    policies = {
+      ExtensionSettings = {};
+    };
+    package = pkgs.firefox.override {
+      cfg = {
+        enableTridactylNative = true;
+        enableGnomeExtensions = true;
+      };
+    };
+  };
 }
