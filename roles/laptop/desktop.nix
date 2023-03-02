@@ -30,6 +30,7 @@
   };
 
   environment.systemPackages = with pkgs; [
+    google-chrome
     gnome.gnome-tweaks
     gnomeExtensions.dash-to-dock
   ];
