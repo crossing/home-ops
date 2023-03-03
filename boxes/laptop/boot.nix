@@ -20,6 +20,7 @@
     devices = {
       crypt = {
         device = "/dev/disk/by-uuid/b31c643e-24b2-46b1-a2fa-4e9864b81b02";
+        allowDiscards = true;
         preLVM = true;
       };
     };
