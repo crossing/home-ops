@@ -30,6 +30,7 @@ let
   hosts = [
     "unifi-controller"
     "laptop"
+    "desktop"
   ];
 in
 {

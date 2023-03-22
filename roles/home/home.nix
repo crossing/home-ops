@@ -23,7 +23,7 @@
 
   home.packages = [
     # nix goodies
-    pkgs.nixVersions.nix_2_9
+    pkgs.nixVersions.nix_2_13
     pkgs.niv
     pkgs.nix-tree
     pkgs.nixpkgs-fmt
