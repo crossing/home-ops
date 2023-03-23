@@ -37,7 +37,7 @@
 
   system.autoUpgrade = {
     enable = true;
-    flake = "github:crossing/home-ops#laptop";
+    flake = "github:crossing/home-ops#${config.networking.hostName}";
     dates = "Sun *-*-* 01:00:00";
   };
 
