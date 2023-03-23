@@ -20,14 +20,14 @@
   time.timeZone = "Europe/London";
 
   nix = {
-    package = pkgs.nixVersions.nix_2_9;
+    package = pkgs.nixVersions.nix_2_13;
     optimise.automatic = true;
     settings = {
       max-jobs = "auto";
       cores = 0;
     };
     extraOptions = ''
-      experimental-features = nix-command
+      experimental-features = nix-command flakes
     '';
   };
 
