@@ -41,6 +41,7 @@
     dates = "Sun *-*-* 01:00:00";
   };
 
+  services.fwupd.enable = true;
   system.stateVersion = "22.05";
 }
 
