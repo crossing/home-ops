@@ -7,6 +7,7 @@
     ./ssh.nix
     ./desktop.nix
     ./aws.nix
+    ./secrets.nix
   ];
 
   fonts.fontconfig.enable = true;
