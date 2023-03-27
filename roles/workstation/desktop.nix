@@ -29,12 +29,6 @@
     gnome-settings-daemon.enable = true;
   };
 
-  environment.systemPackages = with pkgs; [
-    google-chrome
-    gnome.gnome-tweaks
-    gnomeExtensions.dash-to-dock
-  ];
-
   environment.gnome.excludePackages = with pkgs; [
     gnome.gnome-music
     gnome.totem
@@ -56,5 +50,17 @@
         enableGnomeExtensions = true;
       };
     };
+  };
+
+  environment.systemPackages = with pkgs; [
+    (google-chrome.override {
+      commandLineArgs = "--enable-webrtc-pipewire-capturer";
+    })
+    gnome.gnome-tweaks
+    gnomeExtensions.dash-to-dock
+  ];
+
+  environment.sessionVariables = {
+    NIXOS_OZONE_WL = "1";
   };
 }
