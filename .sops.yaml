@@ -1,6 +1,9 @@
 keys:
-- &dev age10esr5rnqjm976hznam6mx2gzx25j8z5nm5vj9ty9wegqev8prcas5azfgh
+- &recover age10esr5rnqjm976hznam6mx2gzx25j8z5nm5vj9ty9wegqev8prcas5azfgh
+- &desktop_home age10dvc02fthz48jlxq8nrq2xsu7sgruhxh233pe8y3xn623nyc3d0qjwrm9n
 creation_rules:
-- key_groups:
+- path_regex: home/secrets/[^/]+\.yaml$
+  key_groups:
   - age:
-    - *dev
+    - *recover
+    - *desktop_home
