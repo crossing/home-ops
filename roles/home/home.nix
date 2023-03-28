@@ -8,6 +8,7 @@
     ./desktop.nix
     ./aws.nix
     ./secrets.nix
+    ./rclone.nix
   ];
 
   fonts.fontconfig.enable = true;
@@ -81,10 +82,6 @@
     pkgs.nodePackages.prettier
     pkgs.nodePackages.vscode-json-languageserver
     pkgs.nodePackages.pyright
-
-    # rclone
-    pkgs.rclone
-    pkgs.rclone-browser
   ];
 
   # Let Home Manager install and manage itself.
