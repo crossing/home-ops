@@ -1,17 +1,20 @@
 { config, ... }:
+let
+  secretsBase = ./../../secrets/users/${config.home.username};
+in
 {
-  sops.age.keyFile = "${config.home.homeDirectory}/.config/sops/age/keys.txt";
+  sops.age.keyFile = "${config.xdg.configHome}/sops/age/keys.txt";
   sops.secrets = {
     git_user_inc = {
       format = "yaml";
-      sopsFile = ./secrets/git.yaml;
-      path = "${config.home.homeDirectory}/.config/git/user.inc";
+      sopsFile = secretsBase + "/git.yaml";
+      path = "${config.xdg.configHome}/git/user.inc";
     };
 
     "rclone.conf" = {
       format = "binary";
-      sopsFile = ./secrets/rclone.conf;
-      path = "${config.home.homeDirectory}/.config/rclone/rclone.conf";
+      sopsFile = secretsBase + "/rclone.conf";
+      path = "${config.xdg.configHome}/rclone/rclone.conf";
     };
   };
 }
