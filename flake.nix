@@ -12,6 +12,11 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    sops-nix = {
+      url = "github:Mic92/sops-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     deploy-rs.url = "github:serokell/deploy-rs";
 
     nixos-hardware.url = "github:NixOS/nixos-hardware";
@@ -36,6 +41,9 @@
         devShells.default = pkgs.mkShell {
           buildInputs = [
             pkgs.deploy-rs
+            pkgs.ssh-to-age
+            pkgs.age
+            pkgs.sops
           ];
         };
       });

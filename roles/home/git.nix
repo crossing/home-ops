@@ -6,9 +6,6 @@
       withLibsecret = true;
     };
 
-    userName = "Xing Yang";
-    userEmail = "xor@jecity.net";
-
     lfs.enable = true;
 
     extraConfig = {
@@ -16,6 +13,10 @@
       pull.rebase = true;
       rebase.autoStash = true;
     };
+
+    includes = [
+      { inherit (config.sops.secrets.git_user_inc) path; }
+    ];
   };
 
   programs.gh = {
