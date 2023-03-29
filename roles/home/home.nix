@@ -82,6 +82,7 @@
     pkgs.nodePackages.prettier
     pkgs.nodePackages.vscode-json-languageserver
     pkgs.nodePackages.pyright
+    pkgs.rnix-lsp
   ];
 
   # Let Home Manager install and manage itself.
