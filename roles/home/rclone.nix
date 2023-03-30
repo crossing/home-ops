@@ -13,7 +13,7 @@
       rcloneWrapper = pkgs.writeShellScriptBin "rclonew" ''
         #!${pkgs.bash}/bin/bash
         set -euo pipefail
-        mkdir -p ${mountTarget} ${cacheDir}
+        ${pkgs.coreutils}/bin/mkdir -p ${mountTarget} ${cacheDir}
         exec ${pkgs.rclone}/bin/rclone \
             mount Drive:// ${mountTarget} \
             --config ${configFile} \
@@ -34,6 +34,7 @@
       Service = {
         Type = "notify";
         ExecStart = "${rcloneWrapper}/bin/rclonew";
+        Environment = ["PATH=/run/wrappers/bin"];
       };
     };
 }
