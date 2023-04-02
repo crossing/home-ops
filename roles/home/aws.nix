@@ -7,10 +7,6 @@ in
     awscli2
   ];
 
-  home.file.".aws/config" = {
-    source = ./files/aws-config;
-  };
-
   programs.zsh = {
     oh-my-zsh.plugins = [ "aws" ];
 
