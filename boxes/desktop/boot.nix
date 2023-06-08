@@ -5,7 +5,7 @@
     efi.canTouchEfiVariables = true;
   };
 
-  boot.kernelPackages = pkgs.linuxKernel.packages.linux_6_2;
+  boot.kernelPackages = pkgs.linuxKernel.packages.linux_6_3;
   boot.kernelParams = [ "amdgpu.sg_display=0" ];
 
   boot.initrd.luks = {
