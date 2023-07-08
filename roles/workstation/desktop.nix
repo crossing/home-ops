@@ -59,8 +59,4 @@
     gnome.gnome-tweaks
     gnomeExtensions.dash-to-dock
   ];
-
-  environment.sessionVariables = {
-    NIXOS_OZONE_WL = "1";
-  };
 }
