@@ -20,6 +20,9 @@
   };
 
   programs.dconf.enable = true;
+  programs._1password-gui = {
+    enable = true;
+  };
 
   services.gnome = {
     gnome-browser-connector.enable = true;
