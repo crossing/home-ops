@@ -1,13 +1,11 @@
-{ nixpkgs, nixos-generators, ... }@args:
+{ inputs, lib, ... }:
 let
-  inherit (nixpkgs) lib;
-
   image = name:
     let
-      spec = import (./. + "/${name}/") args;
+      spec = import (./. + "/${name}/") inputs;
     in
-    nixos-generators.nixosGenerate {
-      pkgs = import nixpkgs {
+    inputs.nixos-generators.nixosGenerate {
+      pkgs = import inputs.nixpkgs {
         inherit (spec) system;
         config = { allowUnfree = true; };
       };
@@ -18,4 +16,6 @@ let
     "unifi-controller"
   ];
 in
-lib.genAttrs hosts image
+{
+  flake.images = lib.genAttrs hosts image;
+}

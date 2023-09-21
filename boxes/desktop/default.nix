@@ -1,14 +1,16 @@
-{ nixos-hardware, home-manager, sops-nix, ... }@inputs:
+{ inputs, ... }:
 {
-  modules = [
-    ../../roles/workstation
-    (import ../../roles/home inputs)
-    ./boot.nix
-    ./hardware.nix
-    ./networking.nix
-    home-manager.nixosModules.home-manager
-    sops-nix.nixosModules.sops
-  ];
-
-  system = "x86_64-linux";
+  flake.nixosConfigurations.desktop =
+    inputs.nixpkgs.lib.nixosSystem {
+      system = "x86_64-linux";
+      modules = [
+        ../../roles/workstation
+        (import ../../roles/home inputs)
+        ./boot.nix
+        ./hardware.nix
+        ./networking.nix
+        inputs.home-manager.nixosModules.home-manager
+        inputs.sops-nix.nixosModules.sops
+      ];
+    };
 }

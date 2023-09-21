@@ -1,37 +1,17 @@
-{ nixpkgs, nixos-generators, nixos-hardware, home-manager, deploy-rs, ... }@inputs:
-let
-  inherit (nixpkgs) lib;
-
-  config = spec: nixpkgs.lib.nixosSystem {
-    inherit (spec) system modules;
-  };
-
-  deploy = spec:
-    let
-      nixosConfiguration = config spec;
-    in
-    {
-      hostname = nixosConfiguration.config.networking.hostName;
-      profiles.system = {
-        user = "root";
-        sshUser = "root";
-        path = deploy-rs.lib.${spec.system}.activate.nixos nixosConfiguration;
-      };
-    };
-
-  mapHost = f: name:
-    let
-      spec = import (./. + "/${name}/") inputs;
-    in
-    f spec;
-
-  hosts = [
-    "unifi-controller"
-    "laptop"
-    "desktop"
-  ];
-in
+{ config, lib, inputs, ... }:
 {
-  nixosConfigurations = lib.genAttrs hosts (mapHost config);
-  deploy.nodes = lib.genAttrs hosts (mapHost deploy);
+  imports = [
+    ./desktop
+    ./laptop
+    ./unifi-controller
+  ];
+
+  flake.deploy.nodes = lib.mapAttrs (_: nixosConfiguration: {
+    hostname = nixosConfiguration.config.networking.hostName;
+    profiles.system = {
+      user = "root";
+      sshUser = "root";
+      path = inputs.deploy-rs.lib.${nixosConfiguration.config.nixpkgs.hostPlatform.system}.activate.nixos nixosConfiguration;
+    };
+  }) config.flake.nixosConfigurations;
 }
