@@ -18,11 +18,8 @@
     };
 
     deploy-rs.url = "github:serokell/deploy-rs";
-
     nixos-hardware.url = "github:NixOS/nixos-hardware";
-    flake-parts = {
-      url = "github:hercules-ci/flake-parts";
-    };
+    flake-parts.url = "github:hercules-ci/flake-parts";
   };
 
 
