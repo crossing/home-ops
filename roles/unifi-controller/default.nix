@@ -1,8 +1,10 @@
-{ ... }:
+{ inputs, ... }:
 {
-  imports = [
-    ../../modules/ssh.nix
-    ../../modules/unifi.nix
-    ./nixpkgs.nix
-  ];
+  flake.nixosModules.unifi-controller = { ... }: {
+    imports = [
+      ../../modules/ssh.nix
+      ../../modules/unifi.nix
+      ./nixpkgs.nix
+    ];
+  };
 }

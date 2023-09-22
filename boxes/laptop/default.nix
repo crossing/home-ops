@@ -1,14 +1,18 @@
-{ nixos-hardware, home-manager, ... }@inputs:
+{ inputs, config, ... }:
 {
-  modules = [
-    ../../roles/workstation
-    (import ../../roles/home inputs)
-    ./boot.nix
-    ./hardware.nix
-    ./networking.nix
-    nixos-hardware.nixosModules.dell-xps-15-7590
-    home-manager.nixosModules.home-manager
-  ];
+  flake.nixosConfigurations.laptop =
+    inputs.nixpkgs.lib.nixosSystem {
+      system = "x86_64-linux";
+      modules = [
+        ./boot.nix
+        ./hardware.nix
+        ./networking.nix
 
-  system = "x86_64-linux";
+        config.flake.nixosModules.home-manager
+        config.flake.nixosModules.workstation
+
+        inputs.nixos-hardware.nixosModules.dell-xps-15-7590
+        inputs.sops-nix.nixosModules.sops
+      ];
+    };
 }

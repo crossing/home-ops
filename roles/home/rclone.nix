@@ -34,7 +34,7 @@
       Service = {
         Type = "notify";
         ExecStart = "${rcloneWrapper}/bin/rclonew";
-        Environment = ["PATH=/run/wrappers/bin"];
+        Environment = [ "PATH=/run/wrappers/bin" ];
       };
     };
 }

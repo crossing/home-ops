@@ -18,33 +18,29 @@
     };
 
     deploy-rs.url = "github:serokell/deploy-rs";
-
     nixos-hardware.url = "github:NixOS/nixos-hardware";
-    flake-utils.url = "github:numtide/flake-utils";
+    flake-parts.url = "github:hercules-ci/flake-parts";
   };
 
-  outputs = { self, nixpkgs, flake-utils, ... }@args:
-    let
-      inherit (nixpkgs) lib;
-      inputs = lib.filterAttrs (name: _: name != "self") args;
-      hosts = import ./boxes inputs;
-      images = import ./images inputs;
-    in
-    {
-      inherit (hosts) nixosConfigurations deploy;
-      inherit images;
-    } //
-    flake-utils.lib.eachDefaultSystem (system:
-      let pkgs = import nixpkgs { inherit system; };
-      in
-      {
-        devShells.default = pkgs.mkShell {
-          buildInputs = [
-            pkgs.deploy-rs
-            pkgs.ssh-to-age
-            pkgs.age
-            pkgs.sops
-          ];
+
+  outputs = { self, nixpkgs, flake-parts, ... }@inputs:
+    flake-parts.lib.mkFlake { inherit inputs; } {
+      imports = [
+        ./devShell.nix
+        ./boxes
+        ./images
+      ];
+
+      systems = [
+        "x86_64-linux"
+        "aarch64-linux"
+      ];
+
+      perSystem = { pkgs, system, ... }: {
+        _module.args.pkgs = import nixpkgs {
+          inherit system;
+          config.allowUnfree = true;
         };
-      });
+      };
+    };
 }

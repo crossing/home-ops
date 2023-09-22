@@ -1,10 +1,14 @@
-{ nixos-generators, ... }:
+{ withSystem, inputs, config, ... }:
 {
-  modules = [
-    ../../roles/unifi-controller
-    ./networking.nix
-    nixos-generators.nixosModules.sd-aarch64
-  ];
+  flake.nixosConfigurations.unifi-controller =
+    inputs.nixpkgs.lib.nixosSystem {
+      system = "aarch64-linux";
+      modules = [
+        ./networking.nix
 
-  system = "aarch64-linux";
+        config.flake.nixosModules.unifi-controller
+
+        inputs.nixos-generators.nixosModules.sd-aarch64
+      ];
+    };
 }

@@ -1,9 +1,14 @@
-{ nixos-generators, ... }:
+{ withSystem, inputs, config, ... }:
 {
-  modules = [
-    ../../roles/unifi-controller
-  ];
-
-  system = "aarch64-linux";
-  format = "sd-aarch64";
+  flake.images.unifi-controller = withSystem "aarch64-linux"
+    (
+      { pkgs, ... }:
+      inputs.nixos-generators.nixosGenerate {
+        inherit pkgs;
+        format = "sd-aarch64";
+        modules = [
+          config.flake.nixosModules.unifi-controller
+        ];
+      }
+    );
 }
