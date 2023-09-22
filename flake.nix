@@ -20,22 +20,30 @@
     deploy-rs.url = "github:serokell/deploy-rs";
 
     nixos-hardware.url = "github:NixOS/nixos-hardware";
-    flake-utils.url = "github:numtide/flake-utils";
     flake-parts = {
       url = "github:hercules-ci/flake-parts";
     };
   };
 
 
-  outputs = { self, flake-parts, ... }@inputs:
+  outputs = { self, nixpkgs, flake-parts, ... }@inputs:
     flake-parts.lib.mkFlake { inherit inputs; } {
       imports = [
         ./devShell.nix
         ./boxes
         ./images
       ];
+
       systems = [
         "x86_64-linux"
+        "aarch64-linux"
       ];
+
+      perSystem = { pkgs, system, ... }: {
+        _module.args.pkgs = import nixpkgs {
+          inherit system;
+          config.allowUnfree = true;
+        };
+      };
     };
 }
