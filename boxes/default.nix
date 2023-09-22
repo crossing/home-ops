@@ -4,6 +4,7 @@
     ./desktop
     ./laptop
     ./unifi-controller
+    ../roles/home
   ];
 
   flake.deploy.nodes = lib.mapAttrs (_: nixosConfiguration: {
