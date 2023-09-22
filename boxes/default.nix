@@ -4,7 +4,8 @@
     ./desktop
     ./laptop
     ./unifi-controller
-    ../roles/home
+
+    ../roles
   ];
 
   flake.deploy.nodes = lib.mapAttrs

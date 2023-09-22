@@ -1,4 +1,4 @@
-{ withSystem, inputs, ... }:
+{ withSystem, inputs, config, ... }:
 {
   flake.images.unifi-controller = withSystem "aarch64-linux"
     (
@@ -7,7 +7,7 @@
         inherit pkgs;
         format = "sd-aarch64";
         modules = [
-          ../../roles/unifi-controller
+          config.flake.nixosModules.unifi-controller
         ];
       }
     );
