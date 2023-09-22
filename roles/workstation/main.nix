@@ -11,6 +11,7 @@
       ./audio.nix
       ./development.nix
       ./printer-scanner.nix
+      ./virtualisation.nix
     ];
 
   networking.networkmanager.enable = true; # Easiest to use and most distros use this by default.
