@@ -1,5 +1,7 @@
-{ pkgs, ... }:
+{ pkgs, config, ... }:
 {
+  virtualisation.spiceUSBRedirection.enable = true;
+
   virtualisation.libvirtd = {
     enable = true;
     qemu = {
@@ -11,4 +13,6 @@
   environment.systemPackages = with pkgs; [
     gnome.gnome-boxes
   ];
+
+  users.users.${config.primaryUser}.extraGroups = [ "kvm" ];
 }
