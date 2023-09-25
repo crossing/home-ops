@@ -2,8 +2,7 @@
 {
   flake.nixosModules.unifi-controller = { ... }: {
     imports = [
-      ../../modules/ssh.nix
-      ../../modules/unifi.nix
+      ./unifi.nix
       ./nixpkgs.nix
     ];
   };

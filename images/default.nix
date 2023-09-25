@@ -1,7 +1,7 @@
 { ... }:
 {
   imports = [
-    ./unifi-controller
+    ./aarch64
 
     ../roles
   ];

@@ -3,7 +3,7 @@
   imports = [
     ./desktop
     ./laptop
-    ./unifi-controller
+    ./pi
 
     ../roles
   ];
