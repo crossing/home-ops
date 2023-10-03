@@ -1,8 +1,7 @@
 { ... }:
 {
-  boot.loader {
+  boot.loader = {
     grub.enable = false;
-    generic-extlinux-compatible.enable = true;
     raspberryPi = {
       enable = true;
       version = 3;
@@ -24,6 +23,7 @@
               name = "boot";
               start = "1M";
               end = "512M";
+              fs-type = "fat32";
               part-type = "primary";
               bootable = true;
               content = {
