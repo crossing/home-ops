@@ -32,10 +32,6 @@
     '';
   };
 
-  nixpkgs.config = {
-    allowUnfree = true;
-  };
-
   system.autoUpgrade = {
     enable = true;
     flake = "github:crossing/home-ops#${config.networking.hostName}";
@@ -43,6 +39,5 @@
   };
 
   services.fwupd.enable = true;
-  system.stateVersion = "23.05";
 }
 

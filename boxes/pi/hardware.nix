@@ -1,4 +1,4 @@
-{ ... }:
+{ lib, ... }:
 {
   boot.loader = {
     grub.enable = false;
@@ -47,4 +47,6 @@
       };
     };
   };
+
+  nixpkgs.hostPlatform = lib.mkDefault "aarch64-linux";
 }
