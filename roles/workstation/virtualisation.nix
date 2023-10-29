@@ -1,7 +1,5 @@
 { pkgs, config, ... }:
 {
-  nixpkgs.config.allowUnfree = true;
-  virtualisation.waydroid.enable = true;
   virtualisation.spiceUSBRedirection.enable = true;
 
   virtualisation.libvirtd = {
