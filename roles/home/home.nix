@@ -83,9 +83,6 @@
     pkgs.nodePackages.vscode-json-languageserver
     pkgs.nodePackages.pyright
     pkgs.rnix-lsp
-
-    # academic
-    pkgs.zotero
   ];
 
   # Let Home Manager install and manage itself.
