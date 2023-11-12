@@ -5,10 +5,10 @@
         "homepage": "https://github.com/nmattia/niv",
         "owner": "nmattia",
         "repo": "niv",
-        "rev": "82e5cd1ad3c387863f0545d7591512e76ab0fc41",
-        "sha256": "090l219mzc0gi33i3psgph6s2pwsc8qy4lyrqjdj4qzkvmaj65a7",
+        "rev": "723f0eeb969a730db3c30f977c2b66b9dce9fe4a",
+        "sha256": "0016l7230gd2kdh0g2w573r9a2krqb7x4ifcjhhsn4h1bwap7qr0",
         "type": "tarball",
-        "url": "https://github.com/nmattia/niv/archive/82e5cd1ad3c387863f0545d7591512e76ab0fc41.tar.gz",
+        "url": "https://github.com/nmattia/niv/archive/723f0eeb969a730db3c30f977c2b66b9dce9fe4a.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "zsh-aws-vault": {
@@ -17,10 +17,10 @@
         "homepage": null,
         "owner": "blimmer",
         "repo": "zsh-aws-vault",
-        "rev": "818fc96a73512dd86bfcad850c430e974fd53d78",
-        "sha256": "037rr8ndmhrg5xdn6v1m7c9hwkfql7gsyy4glr84760fyb0w3v2s",
+        "rev": "7b1c238daa24f1b001e39d8a0654d6ffde4cc404",
+        "sha256": "0xbyympgknjn9bw0hzkw55lba8rxkv0fg5h5v4bs2l5x006dqsbk",
         "type": "tarball",
-        "url": "https://github.com/blimmer/zsh-aws-vault/archive/818fc96a73512dd86bfcad850c430e974fd53d78.tar.gz",
+        "url": "https://github.com/blimmer/zsh-aws-vault/archive/7b1c238daa24f1b001e39d8a0654d6ffde4cc404.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "zsh-nix-shell": {
@@ -29,10 +29,10 @@
         "homepage": "",
         "owner": "chisui",
         "repo": "zsh-nix-shell",
-        "rev": "af6f8a266ea1875b9a3e86e14796cadbe1cfbf08",
-        "sha256": "1x6941n43j3fh1zd82v9gzr83d70gasf1s7rh6fzlby4ha20qf06",
+        "rev": "406ce293f5302fdebca56f8c59ec615743260604",
+        "sha256": "0sxm5av4r2lkf18bbfqxhs9ay5d7950azzc340qgn4fzqaiklkvl",
         "type": "tarball",
-        "url": "https://github.com/chisui/zsh-nix-shell/archive/af6f8a266ea1875b9a3e86e14796cadbe1cfbf08.tar.gz",
+        "url": "https://github.com/chisui/zsh-nix-shell/archive/406ce293f5302fdebca56f8c59ec615743260604.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     }
 }

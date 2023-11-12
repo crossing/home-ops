@@ -25,11 +25,12 @@
 
   home.packages = [
     # nix goodies
-    pkgs.nixVersions.nix_2_13
+    pkgs.nixVersions.nix_2_17
     pkgs.niv
     pkgs.nix-tree
     pkgs.nixpkgs-fmt
     pkgs.nixos-generators
+    pkgs.nix-doc
 
     # essential
     pkgs.chezmoi
@@ -44,6 +45,8 @@
     pkgs.ripgrep
     pkgs.ranger
     pkgs.tree
+    pkgs.killall
+    pkgs.jq
 
     # cloud
     pkgs.azure-cli
@@ -98,6 +101,8 @@
     enableBashIntegration = true;
     settings = lib.importTOML ./files/starship.toml;
   };
+
+  programs.nix-index.enable = true;
 
   services.lorri.enable = true;
 

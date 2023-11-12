@@ -10,6 +10,7 @@
 
     extraConfig = {
       credential.helper = "libsecret";
+      push.autoSetupRemote = true;
       pull.rebase = true;
       rebase.autoStash = true;
     };
