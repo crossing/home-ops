@@ -34,6 +34,7 @@
     gnome.totem
   ];
 
+  i18n.defaultLocale = "en_GB.UTF-8";
   i18n.inputMethod.enabled = "ibus";
   i18n.inputMethod.ibus.engines = with pkgs.ibus-engines; [
     libpinyin
@@ -44,11 +45,10 @@
     policies = {
       ExtensionSettings = { };
     };
-    package = pkgs.firefox.override {
-      cfg = {
-        enableTridactylNative = true;
-        enableGnomeExtensions = true;
-      };
+    nativeMessagingHosts = {
+      packages = with pkgs; [
+        tridactyl-native
+      ];
     };
   };
 
