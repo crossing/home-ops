@@ -6,6 +6,7 @@
       modules = [
         ./networking.nix
         ./hardware.nix
+        ./reboot.nix
 
         config.flake.nixosModules.unifi-controller
         config.flake.nixosModules.server
