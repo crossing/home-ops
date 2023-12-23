@@ -6,6 +6,7 @@
       enable = true;
       version = 3;
       uboot.enable = true;
+      uboot.configurationLimit = 2;
     };
   };
 

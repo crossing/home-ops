@@ -1,12 +1,29 @@
 { config, lib, pkgs, ... }:
+let
+  cfg = config.services.unifi;
+in
 {
-  services.unifi = {
-    enable = true;
-    openFirewall = true;
-    unifiPackage = pkgs.unifi;
+  options = {
+    services.unifi.dailyReboot = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+    };
   };
 
-  networking.firewall.allowedTCPPorts = [
-    8443
-  ];
+  config = {
+    services.unifi = {
+      enable = true;
+      openFirewall = true;
+      unifiPackage = pkgs.unifi;
+    };
+
+    networking.firewall.allowedTCPPorts = [
+      8443
+    ];
+
+    systemd.services.unifi.serviceConfig = lib.mkIf cfg.dailyReboot {
+      RuntimeMaxSec = 24 * 3600;
+      Restart = lib.mkForce "always";
+    };
+  };
 }
