@@ -2,7 +2,6 @@
 {
   imports = [
     ./desktop
-    ./laptop
     ./pi
 
     ../roles
