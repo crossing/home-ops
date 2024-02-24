@@ -1,5 +1,7 @@
 { config, pkgs, ... }:
 {
+  boot.kernelPackages = pkgs.linuxKernel.packages.linux_zen;
+
   boot.loader = {
     systemd-boot.enable = true;
     efi.canTouchEfiVariables = true;
