@@ -22,7 +22,7 @@
   time.timeZone = "Europe/London";
 
   nix = {
-    package = pkgs.nixVersions.nix_2_13;
+    package = pkgs.nixVersions.nix_2_19;
     optimise.automatic = true;
     settings = {
       max-jobs = "auto";

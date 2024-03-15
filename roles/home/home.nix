@@ -24,7 +24,7 @@
 
   home.packages = [
     # nix goodies
-    pkgs.nixVersions.nix_2_17
+    pkgs.nixVersions.nix_2_19
     pkgs.niv
     pkgs.nix-tree
     pkgs.nixpkgs-fmt
@@ -84,7 +84,6 @@
     pkgs.nodePackages.prettier
     pkgs.nodePackages.vscode-json-languageserver
     pkgs.nodePackages.pyright
-    pkgs.rnix-lsp
   ];
 
   # Let Home Manager install and manage itself.
