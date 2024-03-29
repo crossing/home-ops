@@ -14,6 +14,7 @@
       ./aws.nix
       ./secrets.nix
       ./rclone.nix
+      ./nix.nix
       inputs.sops-nix.homeManagerModule
     ];
 

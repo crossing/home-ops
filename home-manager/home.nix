@@ -10,14 +10,6 @@
   };
 
   home.packages = [
-    # nix goodies
-    pkgs.nixVersions.nix_2_19
-    pkgs.niv
-    pkgs.nix-tree
-    pkgs.nixpkgs-fmt
-    pkgs.nixos-generators
-    pkgs.nix-doc
-
     # essential
     pkgs.chezmoi
     pkgs.zsh-completions

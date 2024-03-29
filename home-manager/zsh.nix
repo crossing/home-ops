@@ -40,13 +40,5 @@ in
         "emacs"
       ];
     };
-
-    plugins = [
-      {
-        name = "zsh-nix-shell";
-        file = "nix-shell.plugin.zsh";
-        src = sources.zsh-nix-shell;
-      }
-    ];
   };
 }
