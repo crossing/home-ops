@@ -1,6 +1,7 @@
 {
   inputs = {
     nixpkgs.url = "nixpkgs/nixos-23.11";
+    nixpkgs-unstable.url = "nixpkgs/nixpkgs-unstable";
 
     nixos-generators = {
       url = "github:nix-community/nixos-generators";
@@ -8,8 +9,8 @@
     };
 
     home-manager = {
-      url = "github:nix-community/home-manager/release-23.11";
-      inputs.nixpkgs.follows = "nixpkgs";
+      url = "github:nix-community/home-manager";
+      inputs.nixpkgs.follows = "nixpkgs-unstable";
     };
 
     sops-nix = {
@@ -34,6 +35,7 @@
         ./devShell.nix
         ./boxes
         ./images
+        ./home-manager
       ];
 
       systems = [

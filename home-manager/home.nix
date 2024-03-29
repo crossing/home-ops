@@ -1,21 +1,8 @@
-{ username, home }:
 { config, pkgs, lib, ... }:
 {
-  imports = [
-    ./zsh.nix
-    ./git.nix
-    ./ssh.nix
-    ./desktop.nix
-    ./aws.nix
-    ./secrets.nix
-    ./rclone.nix
-  ];
-
   fonts.fontconfig.enable = true;
   news.display = "silent";
 
-  home.username = username;
-  home.homeDirectory = home;
   home.language.base = "en_GB.UTF-8";
   home.sessionVariables = {
     NIX_PATH = "$HOME/.nix-defexpr/channels";
@@ -23,14 +10,6 @@
   };
 
   home.packages = [
-    # nix goodies
-    pkgs.nixVersions.nix_2_19
-    pkgs.niv
-    pkgs.nix-tree
-    pkgs.nixpkgs-fmt
-    pkgs.nixos-generators
-    pkgs.nix-doc
-
     # essential
     pkgs.chezmoi
     pkgs.zsh-completions

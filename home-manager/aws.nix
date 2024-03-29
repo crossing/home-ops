@@ -8,7 +8,9 @@ in
   ];
 
   programs.zsh = {
-    oh-my-zsh.plugins = [ "aws" ];
+    oh-my-zsh.plugins = [
+      "aws"
+    ];
 
     plugins = [
       {

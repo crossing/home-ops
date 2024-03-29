@@ -8,9 +8,7 @@
         ./hardware.nix
         ./networking.nix
 
-        config.flake.nixosModules.home-manager
         config.flake.nixosModules.workstation
-
         inputs.sops-nix.nixosModules.sops
       ];
     };

@@ -5,7 +5,7 @@ in
   programs.zsh = {
     enable = true;
     enableCompletion = true;
-    enableAutosuggestions = true;
+    autosuggestion.enable = true;
     syntaxHighlighting.enable = true;
     autocd = true;
 
@@ -40,13 +40,5 @@ in
         "emacs"
       ];
     };
-
-    plugins = [
-      {
-        name = "zsh-nix-shell";
-        file = "nix-shell.plugin.zsh";
-        src = sources.zsh-nix-shell;
-      }
-    ];
   };
 }
