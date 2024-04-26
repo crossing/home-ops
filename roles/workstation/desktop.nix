@@ -55,7 +55,11 @@
 
   environment.systemPackages = with pkgs; [
     (google-chrome.override {
-      commandLineArgs = "--enable-webrtc-pipewire-capturer";
+      commandLineArgs = [
+        "--enable-webrtc-pipewire-capturer"
+        "--enable-features=UseOzonePlatform"
+        "--ozone-platform=wayland"
+      ];
     })
     gnome.gnome-tweaks
     gnomeExtensions.dash-to-dock
