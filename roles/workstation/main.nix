@@ -24,6 +24,11 @@
   nix = {
     package = pkgs.nixVersions.nix_2_19;
     optimise.automatic = true;
+    gc = {
+      dates = "weekly";
+      persistent = true;
+      automatic = true;
+    };
     settings = {
       max-jobs = "auto";
       cores = 0;
