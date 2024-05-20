@@ -49,8 +49,14 @@
     nativeMessagingHosts = {
       packages = with pkgs; [
         tridactyl-native
+        gnomeExtensions.gsconnect
       ];
     };
+  };
+
+  programs.kdeconnect = {
+    enable = true;
+    package = pkgs.gnomeExtensions.gsconnect;
   };
 
   environment.systemPackages = with pkgs; [
