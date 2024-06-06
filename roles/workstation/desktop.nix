@@ -2,16 +2,19 @@
 {
   services.xserver = {
     enable = true;
-    libinput.enable = true;
 
     # gnome
     desktopManager.gnome.enable = true;
     displayManager.gdm.enable = true;
 
     # keyboard
-    layout = "gb,us";
-    xkbVariant = "intl,altgr-intl";
+    xkb = {
+      layout = "gb,us";
+      variant = "intl,altgr-intl";
+    };
   };
+
+  services.libinput.enable = true;
 
   programs.sway.enable = true;
   xdg.portal = {
