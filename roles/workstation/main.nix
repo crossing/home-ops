@@ -22,7 +22,7 @@
   time.timeZone = "Europe/London";
 
   nix = {
-    package = pkgs.nixVersions.nix_2_19;
+    package = pkgs.nixVersions.nix_2_20;
     optimise.automatic = true;
     gc = {
       dates = "weekly";
