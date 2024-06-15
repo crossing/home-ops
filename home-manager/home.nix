@@ -62,7 +62,7 @@
     # misc
     pkgs.nodePackages.prettier
     pkgs.nodePackages.vscode-json-languageserver
-    pkgs.nodePackages.pyright
+    pkgs.pyright
   ];
 
   # Let Home Manager install and manage itself.
