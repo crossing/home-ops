@@ -15,6 +15,7 @@
       ./secrets.nix
       ./rclone.nix
       ./nix.nix
+      ./emacs.nix
       inputs.sops-nix.homeManagerModule
     ];
 

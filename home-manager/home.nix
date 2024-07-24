@@ -6,7 +6,6 @@
   home.language.base = "en_GB.UTF-8";
   home.sessionVariables = {
     NIX_PATH = "$HOME/.nix-defexpr/channels";
-    EDITOR = "emacs";
   };
 
   home.packages = [
@@ -15,7 +14,6 @@
     pkgs.zsh-completions
 
     # editors
-    pkgs.emacs
     pkgs.vscode
 
     # utils
@@ -45,7 +43,7 @@
     pkgs.minikube
 
     # python
-    (pkgs.python3.withPackages (ps: with ps; [
+    (pkgs.python311.withPackages (ps: with ps; [
       importmagic
       epc
       argcomplete

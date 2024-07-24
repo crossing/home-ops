@@ -14,10 +14,6 @@ in
       eval "$(register-python-argcomplete gcloud)"
     '';
 
-    initExtraBeforeCompInit = ''
-      source $HOME/.zshrc.legacy
-    '';
-
     shellAliases = {
       j = "z";
       jj = "zz";
@@ -37,7 +33,6 @@ in
         "pip"
         "terraform"
         "vagrant"
-        "emacs"
       ];
     };
   };
