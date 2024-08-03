@@ -77,8 +77,6 @@
     settings = lib.importTOML ./files/starship.toml;
   };
 
-  programs.nix-index.enable = true;
-
   services.lorri.enable = true;
 
   # This value determines the Home Manager release that your

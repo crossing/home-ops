@@ -2,6 +2,8 @@
 let sources = import ./nix/sources.nix;
 in
 {
+  programs.nix-index.enable = true;
+
   home.packages = [
     pkgs.nixVersions.nix_2_20
     pkgs.niv
