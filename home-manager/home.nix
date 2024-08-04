@@ -9,10 +9,6 @@
   };
 
   home.packages = [
-    # essential
-    pkgs.chezmoi
-    pkgs.zsh-completions
-
     # editors
     pkgs.vscode
 
@@ -46,7 +42,6 @@
     (pkgs.python311.withPackages (ps: with ps; [
       importmagic
       epc
-      argcomplete
     ]))
 
     # rust
@@ -76,8 +71,6 @@
     enableBashIntegration = true;
     settings = lib.importTOML ./files/starship.toml;
   };
-
-  services.lorri.enable = true;
 
   # This value determines the Home Manager release that your
   # configuration is compatible with. This helps avoid breakage

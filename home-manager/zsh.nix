@@ -1,5 +1,6 @@
 { config, pkgs, lib, ... }:
-let sources = import ./nix/sources.nix;
+let
+  sources = import ./nix/sources.nix;
 in
 {
   programs.zsh = {
@@ -10,8 +11,7 @@ in
     autocd = true;
 
     initExtra = ''
-      eval "$(register-python-argcomplete az)"
-      eval "$(register-python-argcomplete gcloud)"
+      eval "$(${pkgs.python311Packages.argcomplete}/bin/register-python-argcomplete az)"
     '';
 
     shellAliases = {
