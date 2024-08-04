@@ -5,10 +5,10 @@
         "homepage": "https://github.com/nmattia/niv",
         "owner": "nmattia",
         "repo": "niv",
-        "rev": "6f6529db3a69cf3c4dd81eebcb5b46f1d34170e5",
-        "sha256": "1qbyprn08917cszfm5syppi4r5p467qii4fzb2v1s0lrqqn0das4",
+        "rev": "f7c538837892dd2eb83567c9f380a11efb59b53f",
+        "sha256": "0xl33k24vfc29cg9lnp95kvcq69qbq5fzb7jk9ig4lgrhaarh651",
         "type": "tarball",
-        "url": "https://github.com/nmattia/niv/archive/6f6529db3a69cf3c4dd81eebcb5b46f1d34170e5.tar.gz",
+        "url": "https://github.com/nmattia/niv/archive/f7c538837892dd2eb83567c9f380a11efb59b53f.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "zsh-aws-vault": {
@@ -17,10 +17,10 @@
         "homepage": null,
         "owner": "blimmer",
         "repo": "zsh-aws-vault",
-        "rev": "7b1c238daa24f1b001e39d8a0654d6ffde4cc404",
-        "sha256": "0xbyympgknjn9bw0hzkw55lba8rxkv0fg5h5v4bs2l5x006dqsbk",
+        "rev": "9293056e490beb723e9217e308b1bc977e4fbc85",
+        "sha256": "0590vywjwcysxvbymd8infxb1s6c56f2njh549n6jnpc2jckamiw",
         "type": "tarball",
-        "url": "https://github.com/blimmer/zsh-aws-vault/archive/7b1c238daa24f1b001e39d8a0654d6ffde4cc404.tar.gz",
+        "url": "https://github.com/blimmer/zsh-aws-vault/archive/9293056e490beb723e9217e308b1bc977e4fbc85.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "zsh-nix-shell": {
