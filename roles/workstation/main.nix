@@ -13,6 +13,7 @@
       ./printer-scanner.nix
       ./virtualisation.nix
       ./gaming.nix
+      ./networking.nix
     ];
 
   networking.networkmanager.enable = true; # Easiest to use and most distros use this by default.
