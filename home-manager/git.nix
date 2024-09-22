@@ -24,4 +24,8 @@
     enable = true;
     gitCredentialHelper.enable = true;
   };
+
+  home.packages = [
+    pkgs.glab
+  ];
 }

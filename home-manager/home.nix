@@ -20,22 +20,9 @@
     pkgs.killall
     pkgs.jq
 
-    # cloud
-    pkgs.azure-cli
-    pkgs.google-cloud-sdk
-
-    # ops
-    pkgs.ansible
-    pkgs.vagrant
-    pkgs.terraform
-    pkgs.tflint
-
     # k8s
     pkgs.kubectl
-    pkgs.kubernetes-helm
-    pkgs.kustomize
     pkgs.k9s
-    pkgs.skaffold
     pkgs.minikube
 
     # python
@@ -43,9 +30,6 @@
       importmagic
       epc
     ]))
-
-    # rust
-    pkgs.rustup
 
     # clojure
     pkgs.clojure
@@ -56,6 +40,9 @@
     pkgs.nodePackages.prettier
     pkgs.nodePackages.vscode-json-languageserver
     pkgs.pyright
+
+    # apps
+    pkgs.jabref
   ];
 
   # Let Home Manager install and manage itself.

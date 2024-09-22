@@ -10,10 +10,6 @@ in
     syntaxHighlighting.enable = true;
     autocd = true;
 
-    initExtra = ''
-      eval "$(${pkgs.python311Packages.argcomplete}/bin/register-python-argcomplete az)"
-    '';
-
     shellAliases = {
       j = "z";
       jj = "zz";
