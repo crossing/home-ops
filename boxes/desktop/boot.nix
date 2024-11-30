@@ -1,6 +1,6 @@
 { config, pkgs, ... }:
 {
-  boot.kernelPackages = pkgs.linuxKernel.packages.linux_6_11;
+  boot.kernelPackages = pkgs.linuxKernel.packages.linux_6_12;
 
   boot.loader = {
     systemd-boot = {
