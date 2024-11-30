@@ -11,7 +11,7 @@
   };
 
   environment.systemPackages = with pkgs; [
-    gnome.gnome-boxes
+    gnome-boxes
   ];
 
   users.users.${config.primaryUser}.extraGroups = [ "kvm" ];

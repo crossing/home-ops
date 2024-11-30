@@ -38,16 +38,16 @@
   # networking.interfaces.enp78s0.useDHCP = lib.mkDefault true;
 
   nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
+
   hardware.enableAllFirmware = true;
-  hardware.cpu.amd.updateMicrocode = lib.mkDefault config.hardware.enableRedistributableFirmware;
-  hardware.opengl = {
-    driSupport = true;
-    driSupport32Bit = true;
-    extraPackages = [
-      pkgs.rocm-opencl-icd
-      pkgs.rocm-opencl-runtime
-      pkgs.amdvlk
-    ];
-    extraPackages32 = [ pkgs.driversi686Linux.amdvlk ];
+  hardware.cpu.amd.updateMicrocode = true;
+  hardware.amdgpu = {
+    amdvlk = {
+      enable = true;
+      support32Bit.enable = true;
+    };
+
+    opencl.enable = true;
+    initrd.enable = true;
   };
 }

@@ -33,8 +33,8 @@
   };
 
   environment.gnome.excludePackages = with pkgs; [
-    gnome.gnome-music
-    gnome.totem
+    gnome-music
+    totem
   ];
 
   i18n.defaultLocale = "en_GB.UTF-8";
@@ -70,7 +70,12 @@
         "--ozone-platform=wayland"
       ];
     })
-    gnome.gnome-tweaks
+    gnome-tweaks
     gnomeExtensions.dash-to-dock
   ];
+
+  # https://github.com/NixOS/nixpkgs/issues/353588
+  environment.variables = {
+    GSK_RENDERER = "gl";
+  };
 }

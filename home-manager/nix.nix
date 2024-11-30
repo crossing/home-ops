@@ -5,7 +5,7 @@ in
   programs.nix-index.enable = true;
 
   home.packages = [
-    pkgs.nixVersions.nix_2_24
+    pkgs.nixVersions.nix_2_25
     pkgs.niv
     pkgs.nix-tree
     pkgs.nixpkgs-fmt
