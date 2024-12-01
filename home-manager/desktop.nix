@@ -3,7 +3,8 @@
   fonts.fontconfig.enable = lib.mkForce true;
 
   home.packages = with pkgs; [
-    (nerdfonts.override { fonts = [ "FiraCode" "SourceCodePro" ]; })
+    nerd-fonts.fira-code
+    nerd-fonts.sauce-code-pro
     noto-fonts-cjk-sans
     noto-fonts-cjk-serif
 
