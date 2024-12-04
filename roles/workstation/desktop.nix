@@ -38,11 +38,12 @@
   ];
 
   i18n.defaultLocale = "en_GB.UTF-8";
-  i18n.inputMethod.enabled = "fcitx5";
-  i18n.inputMethod.fcitx5.addons = with pkgs; [
-    fcitx5-chinese-addons
-    fcitx5-rime
-  ];
+  i18n.inputMethod = {
+    enable = true;
+    type = "ibus";
+
+    ibus.engines = with pkgs.ibus-engines; [ pinyin libpinyin typing-booster ];
+  };
 
   programs.firefox = {
     enable = true;
@@ -66,8 +67,7 @@
     (google-chrome.override {
       commandLineArgs = [
         "--enable-webrtc-pipewire-capturer"
-        "--enable-features=UseOzonePlatform"
-        "--ozone-platform=wayland"
+        "--gtk-version=4"
       ];
     })
     gnome-tweaks
