@@ -56,4 +56,22 @@
     opencl.enable = true;
     initrd.enable = true;
   };
+
+  hardware.nvidia = {
+    powerManagement.finegrained = true;
+    nvidiaSettings = true;
+    package = config.boot.kernelPackages.nvidiaPackages.production;
+    open = false;
+
+    prime = {
+      offload = {
+        enable = true;
+        enableOffloadCmd = true;
+      };
+      nvidiaBusId = "PCI:01:00:0";
+      amdgpuBusId = "PCI:55:00:0";
+    };
+  };
+
+  services.xserver.videoDrivers = [ "nvidia" ];
 }
