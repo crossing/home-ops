@@ -58,10 +58,9 @@
   };
 
   hardware.nvidia = {
-    powerManagement.enable = true;
     powerManagement.finegrained = true;
     nvidiaSettings = true;
-    package = config.boot.kernelPackages.nvidiaPackages.production;
+    package = config.boot.kernelPackages.nvidiaPackages.beta;
     open = false;
 
     prime = {
