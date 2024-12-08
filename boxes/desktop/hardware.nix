@@ -61,8 +61,8 @@
     powerManagement.finegrained = true;
     nvidiaSettings = true;
     nvidiaPersistenced = true;
-    package = config.boot.kernelPackages.nvidiaPackages.production;
-    open = false;
+    package = config.boot.kernelPackages.nvidiaPackages.beta;
+    open = true;
 
     prime = {
       offload = {
