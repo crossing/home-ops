@@ -60,7 +60,6 @@
   hardware.nvidia = {
     powerManagement.finegrained = true;
     nvidiaSettings = true;
-    nvidiaPersistenced = true;
     package = config.boot.kernelPackages.nvidiaPackages.beta;
     open = true;
 
