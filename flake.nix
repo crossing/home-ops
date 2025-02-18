@@ -36,6 +36,7 @@
         ./boxes
         ./images
         ./home-manager
+        ./packages
       ];
 
       systems = [

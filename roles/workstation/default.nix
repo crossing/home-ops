@@ -1,4 +1,4 @@
-{ inputs, ... }:
+{ inputs, self, ... }:
 {
   flake.nixosModules.workstation = { config, ... }: {
     imports = [
@@ -10,6 +10,8 @@
       (final: prev: {
         docker = inputs.nixpkgs-unstable.legacyPackages.${config.nixpkgs.hostPlatform.system}.docker;
       })
+
+      self.overlays.default
     ];
   };
 }

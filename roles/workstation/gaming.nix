@@ -16,6 +16,7 @@
       };
       extraLibraries = p: with p; [
         atk
+        pyroveil
       ];
     };
 
