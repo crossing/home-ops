@@ -5,7 +5,7 @@
   ];
 
   perSystem = { pkgs, final, config, ... }: {
-    packages.pyroveil = pkgs.callPackage ./pyroveil.nix {};
+    packages.pyroveil = pkgs.callPackage ./pyroveil.nix { };
 
     overlayAttrs = {
       inherit (config.packages) pyroveil;
