@@ -2,7 +2,7 @@
 {
   imports = [
     ./desktop
-    ./pi
+    ./gk
 
     ../roles
   ];
