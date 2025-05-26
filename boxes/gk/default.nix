@@ -1,12 +1,13 @@
 { withSystem, inputs, config, ... }:
 {
-  flake.nixosConfigurations.pi =
+  flake.nixosConfigurations.gk =
     inputs.nixpkgs.lib.nixosSystem {
-      system = "aarch64-linux";
       modules = [
         ./networking.nix
         ./hardware.nix
         ./unifi.nix
+        ./boot.nix
+        ./disk.nix
 
         config.flake.nixosModules.unifi-controller
         config.flake.nixosModules.server

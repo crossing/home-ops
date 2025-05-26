@@ -2,6 +2,6 @@
 {
   networking = {
     useDHCP = true;
-    hostName = "pi";
+    hostName = "gk";
   };
 }
