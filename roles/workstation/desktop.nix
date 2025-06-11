@@ -3,20 +3,26 @@
   services.xserver = {
     enable = true;
 
-    # gnome
-    desktopManager.gnome.enable = true;
-    displayManager.gdm.enable = true;
-
     # keyboard
     xkb = {
-      layout = "gb,us";
-      variant = "intl,altgr-intl";
+      layout = "us";
+      variant = "altgr-intl";
     };
+  };
+
+  services.desktopManager = {
+    cosmic = {
+      enable = true;
+      xwayland.enable = true;
+    };
+  };
+
+  services.displayManager = {
+    cosmic-greeter.enable = true;
   };
 
   services.libinput.enable = true;
 
-  programs.sway.enable = true;
   xdg.portal = {
     enable = true;
     wlr.enable = true;
