@@ -47,33 +47,9 @@
     enable32Bit = true;
   };
 
-  hardware.amdgpu = {
-    amdvlk = {
-      enable = true;
-      support32Bit.enable = true;
-    };
-
-    opencl.enable = true;
-    initrd.enable = true;
-  };
-
   hardware.nvidia = {
-    powerManagement.enable = true;
-    powerManagement.finegrained = true;
-
     package = config.boot.kernelPackages.nvidiaPackages.beta;
-
-    nvidiaSettings = true;
-    open = true;
-
-    prime = {
-      offload = {
-        enable = true;
-        enableOffloadCmd = true;
-      };
-      nvidiaBusId = "PCI:01:00:0";
-      amdgpuBusId = "PCI:55:00:0";
-    };
+    open = false;
   };
 
   services.xserver.videoDrivers = [ "nvidia" ];
