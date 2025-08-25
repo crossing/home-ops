@@ -1,15 +1,15 @@
-{ inputs, ... }:
+{ inputs, modulesPath, ... }:
 {
   imports = [
     ./networking.nix
     ./hardware.nix
-    ./unifi.nix
     ./boot.nix
     ./disk.nix
+    ./configuration
 
-    inputs.self.nixosModules.unifi-controller
-    inputs.self.nixosModules.server
-
+    (modulesPath + "/profiles/minimal.nix")
     inputs.disko.nixosModules.disko
   ];
+
+  server.enable = true;
 }

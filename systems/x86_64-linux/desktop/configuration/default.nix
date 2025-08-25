@@ -1,8 +1,7 @@
-{ inputs, system, ... }:
+{ inputs, system, config, ... }:
 {
   imports = [
     ./main.nix
-    inputs.self.nixosModules.common
   ];
 
   nixpkgs.overlays = [
@@ -11,4 +10,6 @@
       inherit (inputs.self.packages.${system}) pyroveil;
     })
   ];
+
+  snowfallorg.users.${config.primaryUser}.home.enable = false;
 }

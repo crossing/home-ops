@@ -4,8 +4,8 @@
     ./boot.nix
     ./hardware.nix
     ./networking.nix
+    ./configuration
 
-    inputs.self.nixosModules.workstation
     inputs.sops-nix.nixosModules.sops
 
     inputs.nixos-hardware.nixosModules.common-cpu-amd

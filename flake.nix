@@ -42,5 +42,7 @@
       channels-config = {
         allowUnfree = true;
       };
+
+      snowfallorg.user.home.enable = false;
     };
 }
