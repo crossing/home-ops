@@ -1,14 +1,10 @@
-{ inputs, modulesPath, lib, config, ... }:
+{ inputs, modulesPath, system, lib, config, ... }:
 {
   options = {
-    server.enable = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
-      description = "Enable the server profile.";
-    };
+    profiles.server.enable = lib.mkEnableOption "Enable server profile.";
   };
 
-  config = lib.mkIf config.server.enable {
+  config = lib.mkIf config.profiles.server.enable {
     services.openssh = {
       enable = true;
       openFirewall = true;

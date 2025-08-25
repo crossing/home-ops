@@ -12,7 +12,6 @@
       ./development.nix
       ./printer-scanner.nix
       ./virtualisation.nix
-      ./gaming.nix
       ./networking.nix
     ];
 
