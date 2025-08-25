@@ -1,7 +1,7 @@
-{ ... }:
+{ lib, ... }:
 {
   networking = {
-    useDHCP = true;
+    useDHCP = lib.mkForce true;
     hostName = "gk";
   };
 }

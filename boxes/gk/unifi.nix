@@ -1,4 +1,0 @@
-{ ... }:
-{
-  services.unifi.dailyReboot = true;
-}

@@ -26,29 +26,32 @@
     deploy-rs.url = "github:serokell/deploy-rs";
     nixos-hardware.url = "github:NixOS/nixos-hardware";
     flake-parts.url = "github:hercules-ci/flake-parts";
+
+    snowfall-lib = {
+      url = "github:snowfallorg/lib";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
 
-  outputs = { self, nixpkgs, flake-parts, ... }@inputs:
-    flake-parts.lib.mkFlake { inherit inputs; } {
-      imports = [
-        ./devShell.nix
-        ./boxes
-        ./images
-        ./home-manager
-        ./packages
-      ];
+  outputs = {self, nixpkgs, ...}@inputs:
+    inputs.snowfall-lib.mkFlake {
+      inherit inputs;
+      src = ./.;
 
-      systems = [
-        "x86_64-linux"
-        "aarch64-linux"
-      ];
-
-      perSystem = { pkgs, system, ... }: {
-        _module.args.pkgs = import nixpkgs {
-          inherit system;
-          config.allowUnfree = true;
-        };
+      channels-config = {
+        allowUnfree = true;
       };
+
+      deploy.nodes = nixpkgs.lib.mapAttrs
+        (_: nixosConfiguration: {
+          hostname = nixosConfiguration.config.networking.hostName;
+          profiles.system = {
+            user = "root";
+            sshUser = "root";
+            path = inputs.deploy-rs.lib.${nixosConfiguration.config.nixpkgs.hostPlatform.system}.activate.nixos nixosConfiguration;
+          };
+        })
+        self.nixosConfigurations;
     };
 }

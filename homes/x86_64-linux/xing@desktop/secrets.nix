@@ -1,6 +1,6 @@
 { config, ... }:
 let
-  secretsBase = ./../secrets/users/${config.home.username};
+  secretsBase = ./../../../secrets/users/${config.home.username};
 in
 {
   sops.age.keyFile = "${config.xdg.configHome}/sops/age/keys.txt";
