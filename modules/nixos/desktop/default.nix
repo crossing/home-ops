@@ -6,5 +6,6 @@
 
   config = lib.mkIf config.profiles.desktop.enable {
     profiles.desktop.audio.enable = lib.mkDefault true;
+    profiles.desktop.gnome.enable = lib.mkDefault true;
   };
 }
