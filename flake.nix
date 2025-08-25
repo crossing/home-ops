@@ -34,7 +34,7 @@
   };
 
 
-  outputs = inputs:
+  outputs = {self, nixpkgs, ...}@inputs:
     inputs.snowfall-lib.mkFlake {
       inherit inputs;
       src = ./.;
@@ -43,6 +43,15 @@
         allowUnfree = true;
       };
 
-      snowfallorg.user.home.enable = false;
+      deploy.nodes = nixpkgs.lib.mapAttrs
+        (_: nixosConfiguration: {
+          hostname = nixosConfiguration.config.networking.hostName;
+          profiles.system = {
+            user = "root";
+            sshUser = "root";
+            path = inputs.deploy-rs.lib.${nixosConfiguration.config.nixpkgs.hostPlatform.system}.activate.nixos nixosConfiguration;
+          };
+        })
+        self.nixosConfigurations;
     };
 }
