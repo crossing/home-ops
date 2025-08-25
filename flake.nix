@@ -34,7 +34,7 @@
   };
 
 
-  outputs = {self, nixpkgs, ...}@inputs:
+  outputs = { self, nixpkgs, ... }@inputs:
     inputs.snowfall-lib.mkFlake {
       inherit inputs;
       src = ./.;
