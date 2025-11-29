@@ -2,9 +2,10 @@
 {
   programs.ssh = {
     enable = true;
-    compression = true;
-    extraConfig = ''
-      IdentityAgent = ~/.1password/agent.sock
-    '';
+    enableDefaultConfig = false;
+    matchBlocks."*" = {
+      compression = true;
+      identityAgent = "~/.1password/agent.sock";
+    };
   };
 }

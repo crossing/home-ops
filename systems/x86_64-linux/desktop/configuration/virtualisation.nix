@@ -6,7 +6,6 @@
     enable = true;
     qemu = {
       runAsRoot = false;
-      ovmf.enable = true;
     };
   };
 

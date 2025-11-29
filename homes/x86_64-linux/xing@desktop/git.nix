@@ -8,7 +8,7 @@
 
     lfs.enable = true;
 
-    extraConfig = {
+    settings = {
       credential.helper = "libsecret";
       push.autoSetupRemote = true;
       pull.rebase = true;

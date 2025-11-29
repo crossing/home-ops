@@ -1,6 +1,6 @@
 { config, pkgs, ... }:
 {
-  boot.kernelPackages = pkgs.linuxPackages_6_16;
+  boot.kernelPackages = pkgs.linuxPackages_6_17;
   boot.loader = {
     systemd-boot = {
       enable = true;

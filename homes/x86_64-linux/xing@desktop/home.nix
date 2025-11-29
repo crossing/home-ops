@@ -40,9 +40,6 @@
     pkgs.nodePackages.prettier
     pkgs.nodePackages.vscode-json-languageserver
     pkgs.pyright
-
-    # apps
-    pkgs.jabref
   ];
 
   # Let Home Manager install and manage itself.
