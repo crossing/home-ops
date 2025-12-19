@@ -8,9 +8,9 @@
     ./desktop.nix
     ./aws.nix
     ./secrets.nix
-    ./rclone.nix
     ./nix.nix
     ./emacs.nix
+    ./apps
     inputs.sops-nix.homeManagerModule
   ];
 
