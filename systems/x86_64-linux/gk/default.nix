@@ -11,5 +11,5 @@
     inputs.disko.nixosModules.disko
   ];
 
-  server.enable = true;
+  profiles.server.enable = true;
 }

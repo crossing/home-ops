@@ -2,6 +2,7 @@
   inputs = {
     nixpkgs.url = "nixpkgs/nixos-25.11";
     nixpkgs-unstable.url = "nixpkgs/nixpkgs-unstable";
+    nixpkgs-old.url = "nixpkgs/nixos-25.05";
 
     nixos-generators = {
       url = "github:nix-community/nixos-generators";
