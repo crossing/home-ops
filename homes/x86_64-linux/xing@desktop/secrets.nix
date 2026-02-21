@@ -11,10 +11,5 @@ in
       path = "${config.xdg.configHome}/git/user.inc";
     };
 
-    "rclone.conf" = {
-      format = "binary";
-      sopsFile = secretsBase + "/rclone.conf";
-      path = "${config.xdg.configHome}/rclone/rclone.conf";
-    };
   };
 }

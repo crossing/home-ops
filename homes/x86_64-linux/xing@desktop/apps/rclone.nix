@@ -1,40 +1,18 @@
-{ config, pkgs, ... }:
+{ config, ... }:
 {
-  home.packages = with pkgs; [
-    rclone
-    rclone-browser
-  ];
+  services.rcloneMounts = {
+    enable = true;
 
-  systemd.user.services.rclone =
-    let
-      mountTarget = "${config.home.homeDirectory}/Documents/Google";
-      configFile = config.sops.secrets."rclone.conf".path;
-      cacheDir = "${config.xdg.cacheHome}/rclone";
-      rcloneWrapper = pkgs.writeShellScriptBin "rclonew" ''
-        #!${pkgs.bash}/bin/bash
-        set -euo pipefail
-        ${pkgs.coreutils}/bin/mkdir -p ${mountTarget} ${cacheDir}
-        exec ${pkgs.rclone}/bin/rclone \
-            mount Drive:// ${mountTarget} \
-            --config ${configFile} \
-            --cache-dir ${cacheDir} \
-            --vfs-cache-mode=full
-      '';
-    in
-    {
-      Unit = {
-        Description = "RClone Google Drive";
-        After = [ "sops-nix.service" ];
+    mounts = {
+      google = {
+        remote = "Drive";
+        mountPoint = "${config.home.homeDirectory}/Documents/Google";
       };
 
-      Install = {
-        WantedBy = [ "default.target" ];
-      };
-
-      Service = {
-        Type = "notify";
-        ExecStart = "${rcloneWrapper}/bin/rclonew";
-        Environment = [ "PATH=/run/wrappers/bin" ];
+      google-personal = {
+        remote = "PersonalDrive";
+        mountPoint = "${config.home.homeDirectory}/Documents/GooglePersonal";
       };
     };
+  };
 }
