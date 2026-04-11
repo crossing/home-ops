@@ -32,10 +32,33 @@
       url = "github:snowfallorg/lib";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    pyproject-nix = {
+      url = "github:pyproject-nix/pyproject.nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
+    uv2nix = {
+      url = "github:pyproject-nix/uv2nix";
+      inputs.pyproject-nix.follows = "pyproject-nix";
+    };
+
+    pyproject-build-systems = {
+      url = "github:pyproject-nix/build-system-pkgs";
+      inputs.pyproject-nix.follows = "pyproject-nix";
+      inputs.uv2nix.follows = "uv2nix";
+    };
   };
 
 
   outputs = { self, nixpkgs, ... }@inputs:
+    let
+      overlay-python-build = final: prev: {
+        pyproject-nix = inputs.pyproject-nix;
+        uv2nix = inputs.uv2nix;
+        pyproject-build-systems = inputs.pyproject-build-systems;
+      };
+    in
     inputs.snowfall-lib.mkFlake {
       inherit inputs;
       src = ./.;
@@ -43,6 +66,10 @@
       channels-config = {
         allowUnfree = true;
       };
+
+      overlays = [
+        overlay-python-build
+      ];
 
       deploy.nodes = nixpkgs.lib.mapAttrs
         (_: nixosConfiguration: {
