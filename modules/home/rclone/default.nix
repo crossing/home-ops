@@ -28,7 +28,20 @@ let
       rcloneWrapper = pkgs.writeShellScriptBin "rclone-mount-${name}" ''
         #!${pkgs.bash}/bin/bash
         set -euo pipefail
-        ${pkgs.coreutils}/bin/mkdir -p ${lib.escapeShellArg mountTarget} ${lib.escapeShellArg cacheDir}
+
+        mountTarget=${lib.escapeShellArg mountTarget}
+        cacheDir=${lib.escapeShellArg cacheDir}
+
+        ${pkgs.coreutils}/bin/mkdir -p "$mountTarget" "$cacheDir"
+
+        # Unmount any existing mount at mountPoint before starting
+        if ${pkgs.systemd}/bin/systemd-mount --quiet is-mounted "$mountTarget" 2>/dev/null || \
+           ${pkgs.util-linux}/bin/mountpoint -q "$mountTarget" 2>/dev/null; then
+          echo "Unmounting stale mount at $mountTarget..."
+          ${pkgs.util-linux}/bin/umount -l "$mountTarget" 2>/dev/null || true
+          sleep 1
+        fi
+
         exec ${pkgs.rclone}/bin/rclone ${rcloneArgs}
       '';
       conditionScript = pkgs.writeShellScript "rclone-mount-${name}-condition" ''
