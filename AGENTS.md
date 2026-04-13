@@ -23,6 +23,9 @@ Where to look
 
 Conventions (project-specific)
 - This project uses Snowfall conventions for automatic discovery — add new packages/modules following the existing directory patterns.
+- Shared Home Manager modules belong under `modules/home/<module-name>/default.nix` and are auto-discovered as home modules; do not add new shared home modules as flat `modules/home/<name>.nix` files.
+- Per-user home modules live alongside the profile under `homes/<arch>-<os>/<user>@<host>/...` and are imported from that profile only when they are user-specific.
+- When moving or renaming a module path, stage the new path with Git before building so the flake evaluates against the tracked tree.
 
 Commands
 ```
@@ -32,6 +35,12 @@ nix build .#homeConfigurations."xing@desktop".activationPackage -L
 
 Notes
 - Always git-add new/renamed files before running Nix build (flake evaluation reads repo state).
+- Snowfall root layout expected by this repo: `flake.nix`, `lib/`, `packages/`, `modules/`, `overlays/`, `systems/`, `homes/`.
+- Snowfall module discovery in this repo follows the directory form:
+  - `modules/nixos/<name>/default.nix` -> NixOS module
+  - `modules/darwin/<name>/default.nix` -> Darwin module
+  - `modules/home/<name>/default.nix` -> Home Manager module
+- Prefer `default.nix` inside a module directory for future conversions; that keeps the path aligned with Snowfall docs and avoids manual import churn.
 
 CODE MAP
 | Symbol | Type | Location | Notes |

@@ -10,7 +10,6 @@
     ./apps
     ./developer
     ./ai
-    ../../../modules/home/rclone.nix
     inputs.sops-nix.homeManagerModule
   ];
 
