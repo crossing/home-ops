@@ -37,8 +37,8 @@
     pkgs.clojure-lsp
 
     # misc
-    pkgs.nodePackages.prettier
-    pkgs.nodePackages.vscode-json-languageserver
+    pkgs.prettier
+    pkgs.vscode-json-languageserver
     pkgs.pyright
   ];
 

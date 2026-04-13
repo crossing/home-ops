@@ -1,6 +1,6 @@
 {
   inputs = {
-    nixpkgs.url = "nixpkgs/nixos-25.11";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
     nixpkgs-unstable.url = "nixpkgs/nixpkgs-unstable";
     nixpkgs-old.url = "nixpkgs/nixos-25.05";
 
@@ -48,38 +48,44 @@
       inputs.pyproject-nix.follows = "pyproject-nix";
       inputs.uv2nix.follows = "uv2nix";
     };
+
+    llm-agents = {
+      url = "github:numtide/llm-agents.nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
 
-  outputs = { self, nixpkgs, ... }@inputs:
-    let
-      overlay-python-build = final: prev: {
-        pyproject-nix = inputs.pyproject-nix;
-        uv2nix = inputs.uv2nix;
-        pyproject-build-systems = inputs.pyproject-build-systems;
-      };
-    in
-    inputs.snowfall-lib.mkFlake {
-      inherit inputs;
-      src = ./.;
-
-      channels-config = {
-        allowUnfree = true;
-      };
-
-      overlays = [
-        overlay-python-build
-      ];
-
-      deploy.nodes = nixpkgs.lib.mapAttrs
-        (_: nixosConfiguration: {
-          hostname = nixosConfiguration.config.networking.hostName;
-          profiles.system = {
-            user = "root";
-            sshUser = "root";
-            path = inputs.deploy-rs.lib.${nixosConfiguration.config.nixpkgs.hostPlatform.system}.activate.nixos nixosConfiguration;
-          };
-        })
-        self.nixosConfigurations;
+  outputs = { self, nixpkgs, llm-agents, ... }@inputs:
+  let
+    overlay-python-build = final: prev: {
+      pyproject-nix = inputs.pyproject-nix;
+      uv2nix = inputs.uv2nix;
+      pyproject-build-systems = inputs.pyproject-build-systems;
     };
+
+  in
+  inputs.snowfall-lib.mkFlake {
+    inherit inputs;
+    src = ./.;
+
+    channels-config = {
+      allowUnfree = true;
+    };
+
+    overlays = [
+      overlay-python-build
+    ];
+
+    deploy.nodes = nixpkgs.lib.mapAttrs
+      (_: nixosConfiguration: {
+        hostname = nixosConfiguration.config.networking.hostName;
+        profiles.system = {
+          user = "root";
+          sshUser = "root";
+          path = inputs.deploy-rs.lib.${nixosConfiguration.config.nixpkgs.hostPlatform.system}.activate.nixos nixosConfiguration;
+        };
+      })
+      self.nixosConfigurations;
+  };
 }
