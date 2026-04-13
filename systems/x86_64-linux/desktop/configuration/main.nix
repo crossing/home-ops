@@ -36,6 +36,28 @@
     '';
   };
 
+  systemd.services.nix-generation-prune = {
+    description = "Prune old NixOS generations";
+
+    serviceConfig.Type = "oneshot";
+
+    script = ''
+      set -euo pipefail
+
+      ${pkgs.nix}/bin/nix-env --profile /nix/var/nix/profiles/system --delete-generations +5
+    '';
+  };
+
+  systemd.timers.nix-generation-prune = {
+    wantedBy = [ "timers.target" ];
+
+    timerConfig = {
+      OnCalendar = "weekly";
+      Persistent = true;
+      RandomizedDelaySec = "1h";
+    };
+  };
+
   system.autoUpgrade = {
     enable = true;
     flake = "github:crossing/home-ops#${config.networking.hostName}";
