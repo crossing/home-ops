@@ -19,6 +19,7 @@
     pkgs.tree
     pkgs.killall
     pkgs.jq
+    pkgs.nodejs
 
     # k8s
     pkgs.kubectl

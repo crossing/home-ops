@@ -1,7 +1,9 @@
 { pkgs, ... }:
 {
-  home.packages = [
-    pkgs.antigravity
+  home.packages = with pkgs; [
+    antigravity
+    gws
+    google-cloud-sdk
   ];
 
   programs.gemini-cli = {
