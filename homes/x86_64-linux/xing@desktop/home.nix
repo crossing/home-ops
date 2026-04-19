@@ -11,6 +11,7 @@
   home.packages = [
     # editors
     pkgs.vscode
+    pkgs.tmux
 
     # utils
     pkgs.fasd
