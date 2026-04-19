@@ -10,6 +10,7 @@
     ./apps
     ./developer
     ./ai
+
     inputs.sops-nix.homeManagerModule
   ];
 
