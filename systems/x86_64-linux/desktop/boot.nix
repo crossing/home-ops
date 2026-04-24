@@ -10,7 +10,6 @@
   };
 
   boot.initrd.luks = {
-    reusePassphrases = true;
     mitigateDMAAttacks = true;
     devices = {
       crypt = {
