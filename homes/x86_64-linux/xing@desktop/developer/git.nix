@@ -18,6 +18,8 @@
     includes = [
       { inherit (config.sops.secrets.git_user_inc) path; }
     ];
+
+    signing.format = null;
   };
 
   programs.gh = {
