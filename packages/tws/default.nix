@@ -6,8 +6,8 @@ pkgs.symlinkJoin {
   paths = [
     (pkgs.writeShellApplication {
       name = "tws";
-      runtimeInputs = [ 
-        pkgs.podman 
+      runtimeInputs = [
+        pkgs.podman
         pkgs.coreutils
         pkgs.gnused
       ];

@@ -1,5 +1,9 @@
 { config, lib, pkgs, ... }:
 {
+  imports = [
+    ./nemo.nix
+  ];
+
   options = {
     profiles.desktop.gnome.enable = lib.mkEnableOption "Enable desktop profile.";
   };
@@ -25,6 +29,7 @@
     environment.gnome.excludePackages = with pkgs; [
       gnome-music
       totem
+      nautilus
     ];
 
     i18n.defaultLocale = "en_GB.UTF-8";
@@ -45,10 +50,5 @@
       gnome-tweaks
       gnomeExtensions.dash-to-dock
     ];
-
-    # https://github.com/NixOS/nixpkgs/issues/353588
-    environment.variables = {
-      GSK_RENDERER = "ngl";
-    };
   };
 }
