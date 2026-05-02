@@ -1,7 +1,8 @@
-{ config, lib, pkgs, ... }:
+{ config, lib, pkgs, inputs, ... }:
 {
   imports = [
-    ./nemo.nix
+    ./pcmanfm.nix
+    inputs.xdp-termfilepickers.nixosModules.default
   ];
 
   options = {
@@ -15,8 +16,18 @@
 
     services.libinput.enable = true;
 
+    services.xdg-desktop-portal-termfilepickers = {
+      enable = true;
+      package = inputs.xdp-termfilepickers.packages.${pkgs.system}.default;
+      config = {
+        terminal_command = [ (lib.getExe pkgs.kitty) "--title" "filepicker" "-e" ];
+      };
+    };
+
     xdg.portal = {
       enable = true;
+      xdgOpenUsePortal = true;
+
       wlr.enable = true;
     };
 
@@ -49,6 +60,9 @@
     environment.systemPackages = with pkgs; [
       gnome-tweaks
       gnomeExtensions.dash-to-dock
+      kitty
+      yazi
+      nushell
     ];
   };
 }

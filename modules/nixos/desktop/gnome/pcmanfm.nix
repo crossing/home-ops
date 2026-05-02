@@ -2,13 +2,12 @@
 {
   config = lib.mkIf config.profiles.desktop.gnome.enable {
     environment.systemPackages = [
-      pkgs.nemo-with-extensions
+      pkgs.pcmanfm
     ];
 
     xdg = {
       mime.defaultApplications = {
-        "inode/directory" = [ "nemo.desktop" ];
-        "application/x-gnome-saved-search" = [ "nemo.desktop" ];
+        "inode/directory" = [ "pcmanfm.desktop" ];
       };
     };
   };
