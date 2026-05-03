@@ -87,7 +87,7 @@
           hostname = nixosConfiguration.config.networking.hostName;
           profiles.system = {
             user = "root";
-            sshUser = "root";
+            sshUser = if nixosConfiguration.config.users.users ? deploy then "deploy" else "root";
             path = inputs.deploy-rs.lib.${nixosConfiguration.config.nixpkgs.hostPlatform.system}.activate.nixos nixosConfiguration;
           };
         })
