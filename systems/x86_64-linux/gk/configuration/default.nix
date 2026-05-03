@@ -1,27 +1,14 @@
 { config, lib, pkgs, ... }:
 {
-  services.unifi = {
-    enable = true;
-    openFirewall = true;
-    unifiPackage = pkgs.unifi;
-    mongodbPackage = pkgs.mongodb-7_0;
-    jrePackage = pkgs.openjdk25_headless;
-  };
-
-  networking.firewall.allowedTCPPorts = [
-    8443
+  imports = [
+    ./unifi.nix
   ];
 
-  systemd.services.unifi.serviceConfig = {
-    RuntimeMaxSec = 24 * 3600;
-    Restart = lib.mkForce "always";
-  };
-
-  system.activationScripts.unifiMigration = {
-    text = ''
-      if [ -d /var/lib/unifi ]; then
-        chown -R unifi:unifi /var/lib/unifi
-      fi
-    '';
+  services.local-dns = {
+    enable = true;
+    mappings = {
+      "7c:83:34:b5:82:19" = "gk";
+      "2c:6f:c9:3b:fc:e7" = "printer";
+    };
   };
 }
