@@ -5,5 +5,6 @@ self: super: {
     oh-my-opencode
     claude-code
     hermes-agent
-    agent-browser;
+    agent-browser
+    antigravity;
 }
