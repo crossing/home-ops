@@ -1,7 +1,7 @@
 {
   inputs = {
     nixpkgs.url = "nixpkgs/nixos-25.11";
-    nixpkgs-unstable.url = "nixpkgs/nixpkgs-unstable";
+    nixpkgs-26-05.url = "nixpkgs/nixos-26.05";
     nixpkgs-old.url = "nixpkgs/nixos-25.05";
 
     nixos-generators = {
@@ -51,7 +51,7 @@
 
     llm-agents = {
       url = "github:numtide/llm-agents.nix";
-      inputs.nixpkgs.follows = "nixpkgs-unstable";
+      inputs.nixpkgs.follows = "nixpkgs-26-05";
     };
 
     xdp-termfilepickers = {
@@ -76,6 +76,9 @@
 
       channels-config = {
         allowUnfree = true;
+        permittedInsecurePackages = [
+          "mongodb-7.0.25"
+        ];
       };
 
       overlays = [
