@@ -1,7 +1,6 @@
 {
   inputs = {
-    nixpkgs.url = "nixpkgs/nixos-unstable";
-    nixpkgs-unstable.url = "nixpkgs/nixpkgs-unstable";
+    nixpkgs.url = "nixpkgs/nixos-26.05";
     nixpkgs-old.url = "nixpkgs/nixos-25.05";
 
     nixos-generators = {
@@ -10,7 +9,7 @@
     };
 
     home-manager = {
-      url = "github:nix-community/home-manager";
+      url = "github:nix-community/home-manager/release-26.05";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
@@ -51,7 +50,7 @@
 
     llm-agents = {
       url = "github:numtide/llm-agents.nix";
-      inputs.nixpkgs.follows = "nixpkgs-unstable";
+      inputs.nixpkgs.follows = "nixpkgs";
     };
 
     xdp-termfilepickers = {
@@ -76,6 +75,9 @@
 
       channels-config = {
         allowUnfree = true;
+        permittedInsecurePackages = [
+          "mongodb-7.0.25"
+        ];
       };
 
       overlays = [
