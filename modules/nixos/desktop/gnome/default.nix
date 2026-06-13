@@ -1,10 +1,5 @@
 { config, lib, pkgs, inputs, ... }:
 {
-  imports = [
-    ./pcmanfm.nix
-    inputs.xdp-termfilepickers.nixosModules.default
-  ];
-
   options = {
     profiles.desktop.gnome.enable = lib.mkEnableOption "Enable desktop profile.";
   };
@@ -15,14 +10,6 @@
     services.displayManager.gdm.enable = true;
 
     services.libinput.enable = true;
-
-    services.xdg-desktop-portal-termfilepickers = {
-      enable = true;
-      package = inputs.xdp-termfilepickers.packages.${pkgs.system}.default;
-      config = {
-        terminal_command = [ (lib.getExe pkgs.kitty) "--title" "filepicker" "-e" ];
-      };
-    };
 
     xdg.portal = {
       enable = true;
@@ -40,7 +27,6 @@
     environment.gnome.excludePackages = with pkgs; [
       gnome-music
       totem
-      nautilus
     ];
 
     i18n.defaultLocale = "en_GB.UTF-8";
