@@ -6,5 +6,5 @@ self: super: {
     claude-code
     hermes-agent
     agent-browser
-    antigravity;
+    antigravity-cli;
 }
