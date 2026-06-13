@@ -11,6 +11,7 @@
 
       google-personal = {
         remote = "PersonalDrive";
+        remotePath = "Para";
         mountPoint = "${config.home.homeDirectory}/Documents/GooglePersonal";
       };
     };
