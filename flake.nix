@@ -53,11 +53,14 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-
+    antigravity-nix = {
+      url = "github:jacopone/antigravity-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
 
-  outputs = { self, nixpkgs, llm-agents, ... }@inputs:
+  outputs = { self, nixpkgs, llm-agents, antigravity-nix, ... }@inputs:
     let
       overlay-python-build = final: prev: {
         pyproject-nix = inputs.pyproject-nix;
