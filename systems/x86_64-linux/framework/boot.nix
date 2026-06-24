@@ -8,15 +8,4 @@
     };
     efi.canTouchEfiVariables = true;
   };
-
-  boot.initrd.luks = {
-    mitigateDMAAttacks = true;
-    devices = {
-      crypt = {
-        device = "/dev/disk/by-uuid/CHANGE_ME_LUKS_UUID";
-        allowDiscards = true;
-        preLVM = true;
-      };
-    };
-  };
 }

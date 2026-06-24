@@ -14,18 +14,6 @@
   boot.kernelModules = [ "kvm-amd" ];
   boot.extraModulePackages = [ ];
 
-  fileSystems."/" =
-    {
-      device = "/dev/disk/by-uuid/CHANGE_ME_ROOT_UUID";
-      fsType = "ext4";
-    };
-
-  fileSystems."/boot" =
-    {
-      device = "/dev/disk/by-uuid/CHANGE_ME_BOOT_UUID";
-      fsType = "vfat";
-    };
-
   swapDevices = [ ];
 
   networking.useDHCP = lib.mkDefault true;
