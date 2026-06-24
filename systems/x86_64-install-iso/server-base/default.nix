@@ -1,4 +1,4 @@
 { ... }:
 {
-  server.enable = true;
+  profiles.server.enable = true;
 }
