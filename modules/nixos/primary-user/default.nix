@@ -1,11 +1,14 @@
 { config, lib, pkgs, ... }:
 {
-  options.primaryUser = lib.mkOption {
-    type = lib.types.str;
+  options = {
+    primaryUser = lib.mkOption {
+      type = lib.types.str;
+      default = "xing";
+    };
+    features.primary-user.enable = lib.mkEnableOption "Enable primary user config";
   };
 
-  config = {
-    primaryUser = "xing";
+  config = lib.mkIf config.features.primary-user.enable {
     users.mutableUsers = true;
 
     users.users.${config.primaryUser} = {

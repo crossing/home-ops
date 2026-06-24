@@ -1,5 +1,5 @@
-{ config, ... }:
-{
+{ config, lib, ... }:
+lib.mkIf config.profiles.personal.enable {
   services.rcloneMounts = {
     enable = true;
 

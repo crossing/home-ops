@@ -1,5 +1,5 @@
-{ config, pkgs, ... }:
-{
+{ config, pkgs, lib, ... }:
+lib.mkIf config.profiles.personal.enable {
   programs.ssh = {
     enable = true;
     enableDefaultConfig = false;

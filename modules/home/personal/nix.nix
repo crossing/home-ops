@@ -1,4 +1,4 @@
-{ config, pkgs, ... }:
+{ config, pkgs, lib, ... }:
 let
   sources = import ./nix/sources.nix;
   pruneScript = pkgs.writeShellScript "nix-generation-prune-home" ''
@@ -16,7 +16,7 @@ let
     fi
   '';
 in
-{
+lib.mkIf config.profiles.personal.enable {
   programs.nix-index.enable = true;
 
   home.packages = [

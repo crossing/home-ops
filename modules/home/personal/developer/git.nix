@@ -1,5 +1,5 @@
 { config, pkgs, lib, ... }:
-{
+lib.mkIf config.profiles.personal.enable {
   programs.git = {
     enable = true;
     package = pkgs.git.override {

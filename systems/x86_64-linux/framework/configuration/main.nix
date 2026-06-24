@@ -2,26 +2,21 @@
 # your system.  Help is available in the configuration.nix(5) man page
 # and in the NixOS manual (accessible by running ‘nixos-help’).
 
-{ config, pkgs, lib, ... }:
+{ config, pkgs, ... }:
 {
-  imports =
-    [
-      ../../desktop/configuration/users.nix
-      ../../desktop/configuration/desktop.nix
-      ../../desktop/configuration/development.nix
-      ../../desktop/configuration/printer-scanner.nix
-      ../../desktop/configuration/virtualisation.nix
-      ../../desktop/configuration/networking.nix
-    ];
+  # Enable shared NixOS modules instead of relative path imports
+  features.primary-user.enable = true;
+  features.desktop-apps.enable = true;
+  features.development.enable = true;
+  features.development.enableNvidiaContainer = false; # AMD GPU
+  features.printer-scanner.enable = true;
+  features.virtualisation.enable = true;
 
-  networking.networkmanager.enable = true; # Easiest to use and most distros use this by default.
+  networking.networkmanager.enable = true;
   users.users.${config.primaryUser}.extraGroups = [ "networkmanager" ];
 
   # Set your time zone.
   time.timeZone = "Europe/London";
-
-  # Disable Nvidia-specific settings from development module
-  hardware.nvidia-container-toolkit.enable = lib.mkForce false;
 
   nix = {
     optimise.automatic = true;

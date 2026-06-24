@@ -6,13 +6,16 @@
 {
   imports =
     [
-      ./users.nix
-      ./desktop.nix
-      ./development.nix
-      ./printer-scanner.nix
-      ./virtualisation.nix
       ./networking.nix
     ];
+
+  # Enable shared NixOS modules instead of local files
+  features.primary-user.enable = true;
+  features.desktop-apps.enable = true;
+  features.development.enable = true;
+  features.development.enableNvidiaContainer = true; # Desktop uses Nvidia GPU
+  features.printer-scanner.enable = true;
+  features.virtualisation.enable = true;
 
   networking.networkmanager.enable = true; # Easiest to use and most distros use this by default.
   users.users.${config.primaryUser}.extraGroups = [ "networkmanager" ];

@@ -1,8 +1,8 @@
-{ config, ... }:
+{ config, lib, ... }:
 let
   secretsBase = ./../../../secrets/users/${config.home.username};
 in
-{
+lib.mkIf config.profiles.personal.enable {
   sops.age.keyFile = "${config.xdg.configHome}/sops/age/keys.txt";
   sops.secrets = {
     git_user_inc = {
@@ -10,6 +10,5 @@ in
       sopsFile = secretsBase + "/git.yaml";
       path = "${config.xdg.configHome}/git/user.inc";
     };
-
   };
 }

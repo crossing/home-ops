@@ -1,5 +1,5 @@
 { config, pkgs, lib, ... }:
-{
+lib.mkIf config.profiles.personal.enable {
   fonts.fontconfig.enable = lib.mkForce true;
 
   home.packages = with pkgs; [

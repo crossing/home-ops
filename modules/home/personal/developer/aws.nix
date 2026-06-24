@@ -1,7 +1,7 @@
-{ pkgs, ... }:
+{ config, pkgs, lib, ... }:
 let sources = import ./../nix/sources.nix;
 in
-{
+lib.mkIf config.profiles.personal.enable {
   home.packages = with pkgs; [
     aws-vault
     awscli2
