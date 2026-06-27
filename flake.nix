@@ -57,18 +57,15 @@
       url = "github:jacopone/antigravity-nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    codex-desktop-linux = {
+      url = "github:ilysenko/codex-desktop-linux";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
 
   outputs = { self, nixpkgs, llm-agents, antigravity-nix, ... }@inputs:
-    let
-      overlay-python-build = final: prev: {
-        pyproject-nix = inputs.pyproject-nix;
-        uv2nix = inputs.uv2nix;
-        pyproject-build-systems = inputs.pyproject-build-systems;
-      };
-
-    in
     inputs.snowfall-lib.mkFlake {
       inherit inputs;
       src = ./.;
@@ -79,10 +76,6 @@
           "mongodb-7.0.25"
         ];
       };
-
-      overlays = [
-        overlay-python-build
-      ];
 
       deploy.nodes = nixpkgs.lib.mapAttrs
         (_: nixosConfiguration: {
