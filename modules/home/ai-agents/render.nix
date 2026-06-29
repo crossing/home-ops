@@ -23,7 +23,7 @@ let
     in
     skill.enable && (if overrideEnable == null then true else overrideEnable);
 
-  sourceFile = skill:
+  sourcePath = skill:
     if skill.source == null then null
     else if skill.source.github != null then
       let
@@ -42,11 +42,27 @@ let
     else
       builtins.throw "programs.aiAgents.skills source for ${skill.source.library}#${skill.source.skillName} must define github or file";
 
+  sourceSkillFile = skill:
+    let
+      path = sourcePath skill;
+    in
+    if path != null && builtins.pathExists "${path}/SKILL.md"
+    then "${path}/SKILL.md"
+    else path;
+
+  sourceSkillDir = skill:
+    let
+      path = sourcePath skill;
+    in
+    if path != null && builtins.pathExists "${path}/SKILL.md"
+    then path
+    else null;
+
   skillBody = skill:
     if skill.body != null then skill.body
     else
       let
-        file = sourceFile skill;
+        file = sourceSkillFile skill;
       in
       if file != null
       then builtins.readFile file
@@ -77,6 +93,22 @@ let
     in
     frontmatter + stripFrontmatter (skillBody skill) + (if bodyAppend != "" then "\n${bodyAppend}" else "");
 
+  skillSource = agentName: skillName:
+    let
+      skill = cfg.skills.${skillName};
+      renderedSkill = pkgs.writeText "SKILL.md" (skillText agentName skillName);
+      dir = sourceSkillDir skill;
+    in
+    if dir != null then
+      pkgs.runCommand "ai-agent-skill-${skillName}" { } ''
+        mkdir -p "$out"
+        cp -R ${dir}/. "$out/"
+        chmod -R u+w "$out"
+        install -m 0644 ${renderedSkill} "$out/SKILL.md"
+      ''
+    else
+      pkgs.writeTextDir "SKILL.md" (skillText agentName skillName);
+
   agentSkillNames = agent:
     unique (cfg.defaultSkillSet ++ agent.skillNames);
 
@@ -86,7 +118,7 @@ let
         if enabledSkillForAgent agentName skill then {
           "${agent.skillDir}/${skillName}" = {
             force = true;
-            source = pkgs.writeTextDir "SKILL.md" (skillText agentName skillName);
+            source = skillSource agentName skillName;
           };
         } else { })
       (filterAttrs (skillName: _: builtins.elem skillName (agentSkillNames agent)) cfg.skills);

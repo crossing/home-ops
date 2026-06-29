@@ -7,6 +7,9 @@
     ];
     configPath = ".codex/config.toml";
     skillDir = ".agents/skills";
+    skillNames = [
+      "para-second-brain"
+    ];
   };
 
   hermes = {

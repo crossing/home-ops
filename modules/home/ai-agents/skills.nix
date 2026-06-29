@@ -21,6 +21,13 @@ let
     hash = "1fwbg0p4hmylx1ii9all4cjvk6x8idb2jzfqk4bqydg16sajni36";
   };
 
+  robDefeoAgentSkills = {
+    owner = "robdefeo";
+    repo = "agent-skills";
+    rev = "0b9da00edd625e9978e5f25813f95704e57600c7";
+    hash = "0251c3w5dsb3p0wng7qbmp3li2ss7jwwf0bm20wjbd1xwk4can6c";
+  };
+
   githubSkill = { source, skillName, path }: {
     library = "github:${source.owner}/${source.repo}";
     inherit skillName;
@@ -219,6 +226,28 @@ in
         library.anthropicSkills
       ];
       triggers = [ "resume" "handoff" "long task" ];
+    };
+  };
+
+  para-second-brain = {
+    title = "PARA Second Brain";
+    description = "Organize, classify, and maintain a PARA-method second brain.";
+    source = githubSkill {
+      source = robDefeoAgentSkills;
+      skillName = "para-second-brain";
+      path = "skills/para-second-brain";
+    };
+    packages = [ ];
+    metadata = {
+      category = "knowledge-management";
+      methodology = [ "PARA" "second brain" ];
+      upstream-installs = "356";
+      triggers = [
+        "where to file something"
+        "process inbox"
+        "monthly review"
+        "validate second brain structure"
+      ];
     };
   };
 }
