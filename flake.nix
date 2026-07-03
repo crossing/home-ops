@@ -62,6 +62,11 @@
       url = "github:ilysenko/codex-desktop-linux";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    safe-cli = {
+      url = "path:/home/xing/works/home/safe-cli";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
 

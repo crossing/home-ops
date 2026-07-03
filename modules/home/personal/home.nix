@@ -1,4 +1,7 @@
-{ config, pkgs, lib, ... }:
+{ config, inputs, pkgs, lib, ... }:
+let
+  system = pkgs.stdenv.hostPlatform.system;
+in
 lib.mkIf config.profiles.personal.enable {
   fonts.fontconfig.enable = true;
   news.display = "silent";
@@ -21,6 +24,7 @@ lib.mkIf config.profiles.personal.enable {
     pkgs.killall
     pkgs.jq
     pkgs.nodejs
+    inputs.safe-cli.packages.${system}.safe-op
 
     # k8s
     pkgs.kubectl
