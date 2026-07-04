@@ -1,13 +1,16 @@
-{ inputs, lib, pkgs, ... }:
+{ lib, namespace, pkgs, ... }:
 
 let
-  ibkrCli = pkgs.callPackage ../ibkr-cli { inherit inputs; };
-  twsPackage = pkgs.callPackage ../tws { };
+  localPackages = pkgs.${namespace};
+  ibkrCli = localPackages."ibkr-cli";
+  ibgatewayPackage = localPackages.ibgateway;
+  twsPackage = localPackages.tws;
 
   ibkrLocal = pkgs.writeShellApplication {
     name = "ibkr-local";
     runtimeInputs = [
       ibkrCli
+      ibgatewayPackage
       twsPackage
       pkgs.coreutils
       pkgs.gnugrep
@@ -26,6 +29,7 @@ pkgs.symlinkJoin {
   name = "ibkr-local";
   paths = [
     ibkrLocal
+    ibgatewayPackage
     twsPackage
   ];
 

@@ -66,5 +66,14 @@ lib.mkIf config.profiles.personal.enable {
         accounts.pension = [ ];
       };
     };
+
+    gateway = {
+      enable = true;
+      profiles.main-live = {
+        usernameRef = "op://Private/3drrbjgoksyc3tuu4yxyvshjvq/username";
+        passwordRef = "op://Private/3drrbjgoksyc3tuu4yxyvshjvq/password";
+        readOnlyLogin = true;
+      };
+    };
   };
 }

@@ -31,6 +31,7 @@ Commands:
   order-preview buy|sell   What-if order preview only; --submit is blocked
   config path|show         Print local/upstream config paths or local config
   tws                      Launch TWS for a local profile
+  gateway                  Launch IB Gateway for a local profile
   automation-smoke         Prove Xvfb can see/control a Java window
   ibc-config               Render ephemeral IBC config from safe-op secret refs
 
@@ -233,6 +234,20 @@ cmd_tws() {
   TWS_DIR="$tws_dir" CONFIG_DIR="$jts_dir" TWS_LOG_DIR="$log_dir" exec tws "$@"
 }
 
+cmd_gateway() {
+  parse_common "$@"
+  set -- "${remaining[@]}"
+  require_config
+
+  local gateway_dir jts_dir log_dir
+  gateway_dir=$(profile_string "$profile" "gatewayDir" "$HOME/.local/share/ibkr/$profile/ibgateway")
+  jts_dir=$(profile_string "$profile" "gatewayJtsConfigDir" "$HOME/.config/ibkr-local/gateway-jts/$profile")
+  log_dir=$(profile_string "$profile" "gatewayLogDir" "$state_home/ibkr-local/$profile/gateway")
+
+  mkdir -p "$gateway_dir" "$jts_dir" "$log_dir"
+  IBGATEWAY_DIR="$gateway_dir" IBGATEWAY_CONFIG_DIR="$jts_dir" IBGATEWAY_LOG_DIR="$log_dir" exec ibgateway "$@"
+}
+
 cmd_automation_smoke() {
   local workdir screenshot
   mkdir -p "$state_home/ibkr-local/smoke"
@@ -281,7 +296,7 @@ JAVA
 
 cmd_ibc_config() {
   require_config
-  local profile="" username_ref="" password_ref="" username_item="" username_field="" username_vault="" password_item="" password_field="" password_vault="" trading_mode=""
+  local profile="" username_ref="" password_ref="" username_item="" username_field="" username_vault="" password_item="" password_field="" password_vault="" trading_mode="" read_only_login=0
   while (($#)); do
     case "$1" in
       -p|--profile)
@@ -324,6 +339,10 @@ cmd_ibc_config() {
         trading_mode=$2
         shift 2
         ;;
+      --read-only-login)
+        read_only_login=1
+        shift
+        ;;
       *)
         die "unknown ibc-config option: $1"
         ;;
@@ -360,14 +379,17 @@ cmd_ibc_config() {
     printf 'IbPassword=%s\n' "$password"
     printf 'TradingMode=%s\n' "$mode"
     printf 'ReadOnlyApi=yes\n'
+    if [[ "$read_only_login" == "1" ]]; then
+      printf 'ReadOnlyLogin=yes\n'
+    fi
     printf 'AcceptIncomingConnectionAction=accept\n'
   } > "$config_path"
   username=""
   password=""
   unset username password
 
-  jq -n --arg config "$config_path" --arg runtime_dir "$runtime_dir" \
-    '{config: $config, runtime_dir: $runtime_dir, note: "ephemeral IBC config written with mode 0600; delete runtime_dir after use"}'
+  jq -n --arg config "$config_path" --arg runtime_dir "$runtime_dir" --arg read_only_login "$read_only_login" \
+    '{config: $config, runtime_dir: $runtime_dir, read_only_login: ($read_only_login == "1"), note: "ephemeral IBC config written with mode 0600; delete runtime_dir after use"}'
 }
 
 main() {
@@ -430,6 +452,9 @@ main() {
       ;;
     tws)
       cmd_tws "$@"
+      ;;
+    gateway)
+      cmd_gateway "$@"
       ;;
     automation-smoke)
       cmd_automation_smoke "$@"

@@ -17,6 +17,7 @@ keep_temp=0
 build_package=1
 render_only=0
 allow_paper=0
+read_only_login=0
 
 workdir=""
 runtime_parent=""
@@ -59,6 +60,7 @@ Options:
   --x11                   Use the current X11 DISPLAY
   --xvfb                  Run IBC/TWS in a virtual X11 display
   --allow-paper           Allow a paper profile for debugging; default requires live mode
+  --read-only-login       Ask IBC/TWS for read-only login without completing 2FA
   --system SYSTEM         Flake package system (default: builtins.currentSystem)
   --no-build              Use ibkr-local from PATH instead of building the flake package
   --render-only           Stop after rendering the ephemeral IBC config
@@ -67,6 +69,7 @@ Options:
 
 Examples:
   packages/ibkr-local/test-ibc-login.sh --item-id 3drrbjgoksyc3tuu4yxyvshjvq
+  packages/ibkr-local/test-ibc-login.sh --read-only-login --duration 300 --item-id 3drrbjgoksyc3tuu4yxyvshjvq
   packages/ibkr-local/test-ibc-login.sh --xvfb --duration 600 --item-id 3drrbjgoksyc3tuu4yxyvshjvq
   packages/ibkr-local/test-ibc-login.sh --allow-paper --profile main-paper --render-only
 USAGE
@@ -150,24 +153,24 @@ sanitize_output() {
 
 detect_auth_state() {
   if [[ -n "${sanitized_log:-}" && -f "$sanitized_log" ]]; then
-    if grep -Eiq 'second factor|2fa|two-factor|ib key|ibkr mobile|authentication dialog has timed out|security code' "$sanitized_log"; then
-      printf '2fa\n'
-      return 0
-    fi
     if grep -Eiq 'logged in|login (has )?completed|main window|api server' "$sanitized_log"; then
       printf 'logged-in\n'
+      return 0
+    fi
+    if grep -Eiq 'second factor|2fa|two-factor|ib key|ibkr mobile|authentication dialog has timed out|security code' "$sanitized_log"; then
+      printf '2fa\n'
       return 0
     fi
   fi
 
   local launcher_log="$jts_config_dir/launcher.log"
   if [[ -f "$launcher_log" ]]; then
-    if tail -n 2000 "$launcher_log" 2>/dev/null | grep -Eiq 'second factor|2fa|two-factor|ib key|ibkr mobile|security code'; then
-      printf '2fa\n'
-      return 0
-    fi
     if tail -n 2000 "$launcher_log" 2>/dev/null | grep -Eiq 'logged in|login (has )?completed|main window'; then
       printf 'logged-in\n'
+      return 0
+    fi
+    if tail -n 2000 "$launcher_log" 2>/dev/null | grep -Eiq 'second factor|2fa|two-factor|ib key|ibkr mobile|security code'; then
+      printf '2fa\n'
       return 0
     fi
     if tail -n 2000 "$launcher_log" 2>/dev/null | grep -Eiq 'Authenticating|Starting launcher login thread|LauncherLoginThread'; then
@@ -276,6 +279,10 @@ parse_args() {
         ;;
       --allow-paper)
         allow_paper=1
+        shift
+        ;;
+      --read-only-login)
+        read_only_login=1
         shift
         ;;
       --system)
@@ -411,12 +418,20 @@ render_ibc_config() {
   log "rendering ephemeral IBC config through safe-op"
   username_ref=$(op_secret_ref "$selected_item_vault" "$selected_item" "$username_field")
   password_ref=$(op_secret_ref "$selected_item_vault" "$selected_item" "$password_field")
+  local -a ibc_config_args
+  ibc_config_args=(
+    --profile "$profile"
+    --username-ref "$username_ref"
+    --password-ref "$password_ref"
+    --trading-mode "$profile_mode"
+  )
+  if [[ "$read_only_login" == "1" ]]; then
+    ibc_config_args+=(--read-only-login)
+  fi
+
   env "$session_env=$session" OP_ACCOUNT="$op_account" IBKR_LOCAL_PROFILES="$profiles_json" IBKR_IBC_RUNTIME_PARENT="$runtime_parent" \
     "$ibkr_local" ibc-config \
-    --profile "$profile" \
-    --username-ref "$username_ref" \
-    --password-ref "$password_ref" \
-    --trading-mode "$profile_mode" > "$ibc_json"
+    "${ibc_config_args[@]}" > "$ibc_json"
 
   runtime_dir=$(jq -er '.runtime_dir' "$ibc_json")
   ibc_ini=$(jq -er '.config' "$ibc_json")
@@ -432,6 +447,13 @@ verify_ibc_config() {
   [[ "$(stat -c %a "$ibc_ini")" == "600" ]] || die "IBC config mode is not 600"
   grep -qx "TradingMode=$profile_mode" "$ibc_ini" \
     || die "IBC config TradingMode does not match profile mode '$profile_mode'"
+  if [[ "$read_only_login" == "1" ]]; then
+    grep -qx "ReadOnlyLogin=yes" "$ibc_ini" \
+      || die "IBC config did not enable ReadOnlyLogin"
+  else
+    ! grep -qx "ReadOnlyLogin=yes" "$ibc_ini" \
+      || die "IBC config enabled ReadOnlyLogin unexpectedly"
+  fi
 }
 
 run_tws_ibc() {

@@ -9,6 +9,7 @@ This branch contains the local-only Interactive Brokers integration. It implemen
 
 The important files are:
 
+- `packages/ibgateway/default.nix`
 - `packages/ibkr-local/default.nix`
 - `packages/ibkr-local/ibkr-local.sh`
 - `packages/ibkr-local/test-ibc-login.sh`
@@ -16,14 +17,17 @@ The important files are:
 - `homes/x86_64-linux/xing@desktop/default.nix`
 - `homes/x86_64-linux/xing@desktop/ibkr.nix`
 - `packages/tws/Dockerfile`
+- `packages/tws/common.nix`
 - `packages/tws/default.nix`
 - `packages/tws/wrapper.sh`
 
-The live login test now reaches the expected second-factor prompt for the `crossing2p` IBKR item.
+The live read-only login test now completes for the `crossing2p` IBKR item: IBC reaches the second-factor dialog, clicks `Enter Read Only`, logs `Login has completed`, and opens the TWS main window. Full 2FA code entry is not automated yet; the earlier non-read-only run reached the expected second-factor prompt.
 
 ## Implemented
 
-- Added `packages/ibkr-local`, exposing `ibkr-local` and `tws`.
+- Added `packages/ibkr-local`, exposing `ibkr-local`, `tws`, and `ibgateway`.
+- Added `packages/ibgateway`, which packages IB Gateway through the same shared Podman/IBC wrapper as TWS.
+- Refactored `packages/ibkr-local/default.nix` to reuse Snowfall-discovered sibling packages through `pkgs.${namespace}` instead of self-instantiating `../ibkr-cli` or `../tws` with `pkgs.callPackage`.
 - Deliberately does not expose raw upstream `ibkr` from `ibkr-local`, so the constrained wrapper is not bypassed by this package.
 - Added JSON-first wrapper commands:
   - `doctor`
@@ -38,6 +42,7 @@ The live login test now reaches the expected second-factor prompt for the `cross
   - `config path`
   - `config show`
   - `tws`
+  - `gateway`
   - `automation-smoke`
   - `ibc-config`
 - Added `programs.ibkrLocal` Home Manager module under `modules/home/ibkr-local/default.nix`.
@@ -53,19 +58,36 @@ The live login test now reaches the expected second-factor prompt for the `cross
   - `~/.config/ibkr-local/ibkr-cli/config.toml`
 - Hardened `packages/tws/wrapper.sh`:
   - strict shell mode
+  - shared TWS/IB Gateway wrapper configuration through `packages/tws/common.nix`
   - separate display mode from app mode, so `--xvfb --ibc` works
   - explicit `--visible`, `--x11`, `--xvfb`, and `--ibc` support
-  - `TWS_DIR`, `CONFIG_DIR`, and `TWS_LOG_DIR` support
+  - `TWS_DIR`, `CONFIG_DIR`, and `TWS_LOG_DIR` support for TWS
+  - `IBGATEWAY_DIR`, `IBGATEWAY_CONFIG_DIR`, and `IBGATEWAY_LOG_DIR` support for IB Gateway
+  - Gateway IBC detection accepts both `ibgateway/<version>/jars` and direct `<version>/jars` under the configured Gateway install directory
   - in-container JTS path is consistently `/home/tws/Jts`
   - `xvfb-run` added to the TWS package runtime inputs
+- Added headless IB Gateway Home Manager support:
+  - `programs.ibkrLocal.gateway.enable`
+  - per-profile `ibkr-gateway-<profile>.service` user services
+  - per-profile `ibkr-gateway-reauth-<profile>` scripts installed into the home profile
+  - `main-live` is configured for read-only Gateway login via 1Password references
+  - the service is not wanted by `default.target`; it is manually started by the reauth script
+  - the service is tied to `graphical-session.target` with `PartOf`, so it stops with the graphical login session even when user linger is enabled
+  - the service reads only an already-rendered runtime `ibc.ini`; 1Password access happens only in the manual reauth script
 - Added `packages/ibkr-local/test-ibc-login.sh`:
   - defaults to `main-live`
   - validates the 1Password item username with `safe-op read`
   - renders the IBC config through `safe-op read` secret refs
   - verifies generated config path, mode `0600`, and `TradingMode`
+  - supports `--read-only-login`, which renders and verifies `ReadOnlyLogin=yes`
   - refuses paper mode unless `--allow-paper` is passed
   - sanitizes username, password, and JxBrowser key from logs
-  - only treats 2FA/logged-in evidence as authentication success
+  - reports `logged-in` before `2fa` when both strings are present in the same read-only login log
+- IBC is packaged inside `packages/tws/default.nix`:
+  - pinned to IBC `3.24.1`
+  - fetched from the upstream `IBCLinux-3.24.1.zip` release
+  - mounted into the TWS container as `/opt/ibc` when `tws --ibc` is used
+  - not exposed as a separate top-level `ibc` executable
 
 ## Safety Constraints
 
@@ -75,6 +97,9 @@ The live login test now reaches the expected second-factor prompt for the `cross
 - `order-preview --account ACCOUNT` is forwarded to upstream `ibkr buy/sell --account ACCOUNT`.
 - `ibc-config` refuses to read secrets unless `safe-op` is available.
 - `ibc-config` reads username/password through `safe-op read op://... --no-newline`; it does not call raw `op`.
+- `ibc-config --read-only-login` adds `ReadOnlyLogin=yes`; without the flag, the generated IBC config stays on the normal login path.
+- The Gateway service itself does not call `op` or `safe-op`; `ibkr-gateway-reauth-main-live` renders the ephemeral IBC config first, then starts the service.
+- The Gateway runtime credential config lives under `$XDG_RUNTIME_DIR/ibkr-local/main-live/ibc.ini` with mode `0600`.
 - The login test keeps the IBC credential config under a private temp runtime directory and deletes it on exit.
 - Do not override `XDG_RUNTIME_DIR` for 1Password secret reads; that breaks desktop-app socket discovery. Use `IBKR_IBC_RUNTIME_PARENT` for IBC config placement instead.
 - No secrets are written to Nix-managed files.
@@ -90,7 +115,7 @@ Non-secret identifiers used for the successful test:
 - Password field: `password`
 - OTP field label observed in metadata: `one-time password`
 
-Treat the OTP as a secret. For the next step, prefer:
+Treat the OTP as a secret. This should now be a fallback path only if read-only login cannot support the required local API operations. If it is needed, prefer:
 
 ```bash
 safe-op read "op://3eyhyuvr6x6hvvajthxk5cn37u/3drrbjgoksyc3tuu4yxyvshjvq/one-time password?attribute=otp" --no-newline
@@ -109,52 +134,101 @@ bash -n packages/tws/wrapper.sh
 git diff --cached --check
 git diff --check
 nix build --no-link --print-out-paths .#packages.x86_64-linux.ibkr-local -L
+nix build --no-link --print-out-paths .#packages.x86_64-linux.ibgateway -L
+nix build --no-link --print-out-paths .#packages.x86_64-linux.tws -L
+nix build --no-link --print-out-paths .#homeConfigurations."xing@desktop".activationPackage -L
+nix eval --raw .#pkgs.x86_64-linux.nixpkgs.internal.ibkr-local.name
+nix eval --raw .#pkgs.x86_64-linux.nixpkgs.internal.ibgateway.name
+nix eval --json .#packages.x86_64-linux.ibgateway.name
+nix eval --json .#packages.x86_64-linux --apply builtins.attrNames
+nix eval --json '.#homeConfigurations."xing@desktop".config.programs.ibkrLocal.gateway.enable'
+nix eval --json '.#homeConfigurations."xing@desktop".config.systemd.user.services."ibkr-gateway-main-live".Unit.PartOf'
+nix eval --json '.#homeConfigurations."xing@desktop".config.systemd.user.services."ibkr-gateway-main-live".Service'
 packages/ibkr-local/test-ibc-login.sh --render-only --item-id 3drrbjgoksyc3tuu4yxyvshjvq
+packages/ibkr-local/test-ibc-login.sh --read-only-login --duration 300 --item-id 3drrbjgoksyc3tuu4yxyvshjvq
 ```
 
-Latest successful package path:
+Latest successful package paths:
 
 ```text
-/nix/store/cyn35y9n04473njw8kizpv6blipi3rpy-ibkr-local
+/nix/store/bhg2c39wb771qklw9gg3kk8wqayw64y3-ibkr-local
+/nix/store/izm3ym1px4q6a6hzg1fpggmk6mrhxsj1-ibgateway
+/nix/store/cy7xh33mp5rzap3nqjbr5b3f5jfcxhmg-tws
+/nix/store/wnvmknzpbdcphh0rsxkdjjvvpdyqbk8x-home-manager-generation
 ```
 
 Full live launch command used:
 
 ```bash
-packages/ibkr-local/test-ibc-login.sh --duration 300 --item-id 3drrbjgoksyc3tuu4yxyvshjvq
+packages/ibkr-local/test-ibc-login.sh --read-only-login --duration 300 --item-id 3drrbjgoksyc3tuu4yxyvshjvq
 ```
 
 Observed evidence:
 
 - TWS installed under `~/.local/share/ibkr/main-live/tws`.
-- IBC started with `TradingMode=live`.
-- Local launcher log reached authentication and listed second-factor devices.
-- X11 window enumeration showed `Second Factor Authentication`.
-- Window screenshot showed `Select second factor device` with `IB Key` and `Mobile Authenticator app`.
-- The managed test runner was stopped after recording the 2FA prompt.
+- IBC started with `TradingMode=live`, `ReadOnlyApi=yes`, and `ReadOnlyLogin=yes`.
+- IBC reached `Second Factor Authentication`, clicked `Enter Read Only`, and logged `Login has completed`.
+- TWS opened the main window titled `All Interactive Brokers`.
+- The managed test runner was stopped after recording successful read-only login.
 - No TWS/podman test processes remained afterward.
 - No `ibkr-ibc*` or `ibkr-ibc-test*` temp credential directories remained afterward.
 
-## Known Blocker
+Current headless Gateway service evidence from eval/build:
 
-Full non-activation Home Manager build was attempted earlier:
+- `ibkr-gateway-main-live.service` has `PartOf=["graphical-session.target"]`.
+- `ExecCondition` checks `systemctl --user -q is-active graphical-session.target`.
+- `Restart="no"`.
+- There is no `Install` attr, so the service is not auto-started from `default.target`.
+- `ExecStopPost` removes `%t/ibkr-local/main-live`.
+- The generated run script executes `ibkr-local gateway --profile main-live --xvfb --ibc`.
+- The generated reauth script stops the service, checks `graphical-session.target`, runs `op signin`, renders IBC config through `ibkr-local ibc-config`, installs it at mode `0600`, then starts the service.
+
+## Next Step: Test Headless Gateway Login and API
+
+Goal: test the first live IB Gateway login through `ibkr-gateway-reauth-main-live`, then confirm the local API path supports the v1 operations: `connect`, `positions`, `balances`, `executions`, and `order-preview --preview`.
+
+Gateway login itself has not been runtime-tested yet. The successful read-only login evidence above is for TWS; Gateway has only been verified by package builds, Home Manager eval/build, generated service inspection, and script syntax checks.
+
+Recommended shape:
+
+1. Activate the Home Manager generation when ready:
 
 ```bash
-nix build --no-link .#homeConfigurations."xing@desktop".activationPackage -L
+home-manager switch --flake .#xing@desktop
 ```
 
-It failed on an unrelated existing fixed-output hash mismatch for `Codex.dmg`:
+2. Start/restart Gateway with manual reauth:
 
-```text
-specified: sha256-gPAmEhtiPTtfMXI5qiAmBdkMD+DkWewnyFm6I2kjzbs=
-got:       sha256-deZwuJSNJirI6jrY9hFJ49AkCgTmygtrwkmsVP2D1D4=
+```bash
+ibkr-gateway-reauth-main-live
 ```
 
-This is in the existing Codex desktop closure, not the IBKR local integration. The activation derivation path previously evaluated successfully.
+Confirm from the user journal that `ibkr-gateway-main-live.service` starts and reaches an IBC read-only login state before running API checks:
 
-## Next Step: Fill 2FA From 1Password
+```bash
+journalctl --user -u ibkr-gateway-main-live.service -f
+```
 
-Goal: when TWS reaches the `Second Factor Authentication` window, read the current OTP locally through `safe-op`, select the correct second-factor path if needed, and fill/submit the code without exposing it in logs or chat.
+3. Run read-only API checks against `main-live`:
+
+```bash
+ibkr-local connect --profile main-live
+ibkr-local positions --profile main-live
+ibkr-local balances --profile main-live
+ibkr-local executions --profile main-live
+```
+
+4. Check whether upstream what-if preview works in a Gateway read-only login:
+
+```bash
+ibkr-local order-preview buy AAPL 1 --profile main-live --limit 100 --json
+```
+
+5. Keep live order mutation blocked. Do not use `--submit`, `submit`, `cancel`, or `modify`.
+
+## Fallback: Fill 2FA From 1Password
+
+Only do this if the read-only login cannot support the required local API operations. If needed, when TWS reaches the `Second Factor Authentication` window, read the current OTP locally through `safe-op`, select the correct second-factor path if needed, and fill/submit the code without exposing it in logs or chat.
 
 Recommended shape:
 
