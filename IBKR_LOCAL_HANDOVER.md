@@ -124,13 +124,13 @@ Non-secret identifiers used for the successful test:
 - Password field: `password`
 - OTP field label observed in metadata: `one-time password`
 
-Treat the OTP as a secret. This is a fallback path only if the user wants to avoid the IBKR Mobile push approval path. If it is needed, prefer:
+Treat the OTP as a secret. This is a fallback path only if the user wants to avoid the IBKR Mobile push approval path. The OTP ref is:
 
-```bash
-safe-op read "op://3eyhyuvr6x6hvvajthxk5cn37u/3drrbjgoksyc3tuu4yxyvshjvq/one-time password?attribute=otp" --no-newline
+```text
+op://3eyhyuvr6x6hvvajthxk5cn37u/3drrbjgoksyc3tuu4yxyvshjvq/one-time password?attribute=otp
 ```
 
-Never print the OTP. Verify only with a pipe such as `wc -c`, or pass it directly to a local UI automation helper that does not log it.
+Never print the OTP. Verify only with a pipe such as `safe-op read "$TOTP_REF" --no-newline | wc -c`, or pass it directly to a local UI automation helper that does not log it.
 
 ## Verification Run
 
@@ -230,9 +230,17 @@ Runtime findings:
 Follow-up on 2026-07-05:
 
 - The reauth helper was changed back to a scoped raw-session flow: it calls `op signin --raw`, tests candidate `OP_SESSION_*` names with `op whoami`, exports the matching variable only for the `ibkr-local ibc-config` render, then unsets it before validating and installing the config.
+- A sidecar review found three runtime safety issues, now fixed:
+  - the helper checks `op` and `safe-op` before auth work;
+  - it reuses an inherited valid `OP_SESSION_*` before prompting with `op signin --raw`;
+  - it renders and validates the replacement `ibc.ini` before stopping an already-running Gateway service, then stops/installs/starts only after the replacement config is ready.
+- Service log sanitization now also redacts echoed `IbLoginId=` and `IbPassword=` lines if IBC ever prints config-like diagnostics.
+- The OTP fallback notes no longer show a bare `safe-op read` command that could be copy-pasted into a terminal and print an OTP.
 - The updated helper was built and activated with `home-manager switch --flake .#xing@desktop`.
-- Latest activation package build path after that fix: `/nix/store/r7vxzbspfq2aaix2a2nyym5by14vg7bz-home-manager-generation`.
-- Three clean `op signin --raw` attempts in persistent shells timed out waiting for 1Password desktop authorization, so Gateway was not restarted after this helper change.
+- Latest activation package build path after the delayed-stop/session-reuse fix: `/nix/store/qzi31hwbsq8m6ypm7qbkkbd3q36k06ms-home-manager-generation`.
+- The installed helper path after activation was `/nix/store/pnwjq2n3pw5h7pdh5lxx7rdsj76www9w-ibkr-gateway-reauth-main-live/bin/ibkr-gateway-reauth-main-live`.
+- Runtime retry after activation still did not reach Gateway startup because 1Password desktop dismissed the authorization prompt. A non-raw `op signin --account my.1password.com` attempt with stdout discarded was also dismissed. `op whoami --account my.1password.com` still reports the account is not signed in.
+- A subsequent `ibkr-gateway-reauth-main-live` retry at 2026-07-05 21:40 also failed before Gateway startup with `authorization prompt dismissed`; cleanup left the service inactive and no matching auth/Gateway processes running.
 - Current runtime state after the failed authorization attempts: `ibkr-gateway-main-live.service` is inactive and no Gateway/TWS/Podman runtime process is running.
 
 ## Next Step: Complete Gateway 2FA and API Checks
@@ -288,10 +296,10 @@ Recommended shape:
 
 1. Add a Gateway-specific local helper under `packages/ibkr-local/` that can attach to the Gateway Xvfb display owned by `ibkr-gateway-main-live.service`.
 2. Use `wmctrl`/`xdotool`, screenshots, or Java accessibility only for local window discovery and typing.
-3. Read the OTP inside that local helper via:
+3. Read the OTP inside that local helper or pipe it directly into that helper:
 
 ```bash
-safe-op read "$TOTP_REF" --no-newline
+safe-op read "$TOTP_REF" --no-newline | local-gateway-otp-helper --stdin
 ```
 
 where `TOTP_REF` is:

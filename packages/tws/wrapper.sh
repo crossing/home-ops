@@ -89,7 +89,9 @@ patch_vmoptions_path() {
 sanitize_output() {
   sed -E \
     -e 's/(jxBrowserKey = )[[:alnum:]]+/\1***/g' \
-    -e 's/(-DjxBrowserKey=)[^[:space:]]+/\1***/g'
+    -e 's/(-DjxBrowserKey=)[^[:space:]]+/\1***/g' \
+    -e 's/(IbLoginId[[:space:]]*=[[:space:]]*)[^[:space:]]+/\1***/g' \
+    -e 's/(IbPassword[[:space:]]*=[[:space:]]*)[^[:space:]]+/\1***/g'
 }
 
 detect_versioned_install() {

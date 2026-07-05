@@ -243,10 +243,10 @@ let
         exit 1
       }
 
-      ${pkgs.systemd}/bin/systemctl --user stop ${lib.escapeShellArg serviceName} || true
-
       op_bin=$(command -v op || true)
       [[ -n "$op_bin" ]] || die "op is required"
+      safe_op_bin=$(command -v safe-op || true)
+      [[ -n "$safe_op_bin" ]] || die "safe-op is required"
 
       if [[ -z "''${XDG_RUNTIME_DIR:-}" ]]; then
         die "XDG_RUNTIME_DIR is required"
@@ -273,25 +273,37 @@ let
 
       ${pkgs.coreutils}/bin/mkdir -p "$runtime_base" "$target_dir"
       ${pkgs.coreutils}/bin/chmod 700 "$runtime_base" "$target_dir"
-      ${pkgs.coreutils}/bin/rm -f "$target_dir/ibc.ini"
       render_parent=$(${pkgs.coreutils}/bin/mktemp -d "$runtime_base/${name}.reauth.XXXXXX")
       ${pkgs.coreutils}/bin/chmod 700 "$render_parent"
 
       op_account=${lib.escapeShellArg gatewayProfile.opAccount}
-      session=$("$op_bin" signin --account "$op_account" --raw)
-
       for candidate in OP_SESSION_my OP_SESSION_my_1password_com OP_SESSION_my_1password; do
-        if (
-          export "$candidate=$session"
+        if [[ -n "''${!candidate:-}" ]] && (
           OP_ACCOUNT="$op_account" "$op_bin" whoami --account "$op_account" >/dev/null 2>&1
         ); then
           session_env="$candidate"
           break
         fi
       done
+
+      if [[ -z "$session_env" ]]; then
+        session=$("$op_bin" signin --account "$op_account" --raw)
+
+        for candidate in OP_SESSION_my OP_SESSION_my_1password_com OP_SESSION_my_1password; do
+          if (
+            export "$candidate=$session"
+            OP_ACCOUNT="$op_account" "$op_bin" whoami --account "$op_account" >/dev/null 2>&1
+          ); then
+            session_env="$candidate"
+            break
+          fi
+        done
+      fi
       [[ -n "$session_env" ]] || die "could not find a valid OP_SESSION_* environment name"
 
-      export "$session_env=$session"
+      if [[ -n "$session" ]]; then
+        export "$session_env=$session"
+      fi
       export OP_ACCOUNT="$op_account"
 
       args=(
@@ -354,6 +366,8 @@ let
           || die "rendered IBC config is missing the configured SecondFactorDevice"
       fi
 
+      ${pkgs.systemd}/bin/systemctl --user stop ${lib.escapeShellArg serviceName} || true
+      ${pkgs.coreutils}/bin/rm -f "$target_dir/ibc.ini"
       ${pkgs.coreutils}/bin/install -m 0600 "$rendered_config" "$target_dir/ibc.ini"
       ${pkgs.coreutils}/bin/rm -rf "$render_parent"
       render_parent=""
