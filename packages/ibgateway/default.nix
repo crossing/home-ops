@@ -14,12 +14,12 @@ mkIbkrGui {
   defaultInstallDir = ".local/opt/ibgateway";
   defaultConfigDir = ".config/ibgateway";
   defaultLogDir = ".local/state/ibgateway";
-  containerInstallRoot = "/opt/ibgateway-root";
-  containerAppHome = "/opt/ibgateway-root/ibgateway";
-  appLauncher = "/opt/ibgateway-root/ibgateway/ibgateway";
-  installMarker = "ibgateway/ibgateway";
+  containerInstallRoot = "/opt/ibgateway/latest";
+  containerAppHome = "/opt/ibgateway/latest";
+  appLauncher = "/opt/ibgateway/latest/ibgateway";
+  installMarker = "ibgateway";
   ibcLayout = "ibgateway";
-  ibcVersionPath = "/opt/ibgateway-root";
-  restoreLaunchers = [ "ibgateway/ibgateway" ];
+  ibcVersionPath = "/opt";
+  restoreLaunchers = [ "ibgateway" ];
   gateway = true;
 }

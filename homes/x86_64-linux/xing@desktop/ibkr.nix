@@ -70,9 +70,10 @@ lib.mkIf config.profiles.personal.enable {
     gateway = {
       enable = true;
       profiles.main-live = {
-        usernameRef = "op://Private/3drrbjgoksyc3tuu4yxyvshjvq/username";
-        passwordRef = "op://Private/3drrbjgoksyc3tuu4yxyvshjvq/password";
-        readOnlyLogin = true;
+        usernameRef = "op://3eyhyuvr6x6hvvajthxk5cn37u/3drrbjgoksyc3tuu4yxyvshjvq/username";
+        passwordRef = "op://3eyhyuvr6x6hvvajthxk5cn37u/3drrbjgoksyc3tuu4yxyvshjvq/password";
+        readOnlyLogin = false;
+        secondFactorDevice = "IB Key";
       };
     };
   };

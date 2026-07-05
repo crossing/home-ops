@@ -107,8 +107,14 @@ let
 
       readOnlyLogin = lib.mkOption {
         type = lib.types.bool;
-        default = true;
+        default = false;
         description = "Whether the generated IBC config should request a read-only login.";
+      };
+
+      secondFactorDevice = lib.mkOption {
+        type = lib.types.nullOr lib.types.str;
+        default = null;
+        description = "Exact IBC SecondFactorDevice value to choose when multiple second factors are available.";
       };
 
       displayMode = lib.mkOption {
@@ -225,6 +231,8 @@ let
         if gatewayProfile.usernameRef == null then "" else gatewayProfile.usernameRef;
       passwordRef =
         if gatewayProfile.passwordRef == null then "" else gatewayProfile.passwordRef;
+      secondFactorDevice =
+        if gatewayProfile.secondFactorDevice == null then "" else gatewayProfile.secondFactorDevice;
     in
     pkgs.writeShellScriptBin "ibkr-gateway-reauth-${name}" ''
       #!${pkgs.bash}/bin/bash
@@ -252,7 +260,6 @@ let
       render_parent=""
       session=""
       session_env=""
-
       cleanup() {
         if [[ -n "''${session_env:-}" ]]; then
           unset "$session_env" || true
@@ -297,6 +304,9 @@ let
       if [[ ${if gatewayProfile.readOnlyLogin then "1" else "0"} == 1 ]]; then
         args+=(--read-only-login)
       fi
+      if [[ -n ${lib.escapeShellArg secondFactorDevice} ]]; then
+        args+=(--second-factor-device ${lib.escapeShellArg secondFactorDevice})
+      fi
 
       render_json=$(
         IBKR_LOCAL_PROFILES=${lib.escapeShellArg profilesJsonFile} \
@@ -310,6 +320,40 @@ let
       unset session
 
       rendered_config=$(printf '%s\n' "$render_json" | ${pkgs.jq}/bin/jq -er '.config')
+      [[ -f "$rendered_config" ]] || die "rendered IBC config is missing"
+
+      rendered_mode=$(${pkgs.coreutils}/bin/stat -c '%a' "$rendered_config")
+      case "$rendered_mode" in
+        600|0600)
+          ;;
+        *)
+          die "rendered IBC config must have mode 0600"
+          ;;
+      esac
+
+      rendered_trading_mode=$(
+        (
+          ${pkgs.gnugrep}/bin/grep -E '^TradingMode=' "$rendered_config" \
+            | ${pkgs.coreutils}/bin/head -n 1 \
+            | ${pkgs.coreutils}/bin/cut -d= -f2-
+        ) || true
+      )
+      [[ -n "$rendered_trading_mode" ]] || die "rendered IBC config is missing TradingMode"
+      [[ "$rendered_trading_mode" == ${lib.escapeShellArg profile.mode} ]] \
+        || die "rendered IBC config TradingMode does not match profile mode"
+
+      ${pkgs.gnugrep}/bin/grep -qx 'ReadOnlyApi=yes' "$rendered_config" \
+        || die "rendered IBC config is missing ReadOnlyApi=yes"
+
+      if [[ ${if gatewayProfile.readOnlyLogin then "1" else "0"} == 1 ]]; then
+        ${pkgs.gnugrep}/bin/grep -qx 'ReadOnlyLogin=yes' "$rendered_config" \
+          || die "rendered IBC config is missing ReadOnlyLogin=yes"
+      fi
+      if [[ -n ${lib.escapeShellArg secondFactorDevice} ]]; then
+        ${pkgs.gnugrep}/bin/grep -Fxq ${lib.escapeShellArg "SecondFactorDevice=${secondFactorDevice}"} "$rendered_config" \
+          || die "rendered IBC config is missing the configured SecondFactorDevice"
+      fi
+
       ${pkgs.coreutils}/bin/install -m 0600 "$rendered_config" "$target_dir/ibc.ini"
       ${pkgs.coreutils}/bin/rm -rf "$render_parent"
       render_parent=""

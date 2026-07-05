@@ -1,6 +1,6 @@
 # IBKR Local Integration Handover
 
-Date: 2026-07-04
+Date: 2026-07-05
 Branch: `feature/ibkr-local-integration`
 
 ## Current State
@@ -21,7 +21,9 @@ The important files are:
 - `packages/tws/default.nix`
 - `packages/tws/wrapper.sh`
 
-The live read-only login test now completes for the `crossing2p` IBKR item: IBC reaches the second-factor dialog, clicks `Enter Read Only`, logs `Login has completed`, and opens the TWS main window. Full 2FA code entry is not automated yet; the earlier non-read-only run reached the expected second-factor prompt.
+The live read-only TWS login test completes for the `crossing2p` IBKR item: IBC reaches the second-factor dialog, clicks `Enter Read Only`, logs `Login has completed`, and opens the TWS main window.
+
+The live Gateway runtime path now starts under the Home Manager user service and reaches the IBKR Mobile 2FA approval screen. Gateway does not support IBC `ReadOnlyLogin=yes`; the service now uses a normal Gateway login with `ReadOnlyApi=yes`, `SecondFactorDevice=IB Key`, and the existing `ibkr-local` wrapper-level live-order blocks. API checks are still unverified because the latest run was left waiting for IBKR Mobile approval and was then stopped cleanly.
 
 ## Implemented
 
@@ -64,13 +66,18 @@ The live read-only login test now completes for the `crossing2p` IBKR item: IBC 
   - `TWS_DIR`, `CONFIG_DIR`, and `TWS_LOG_DIR` support for TWS
   - `IBGATEWAY_DIR`, `IBGATEWAY_CONFIG_DIR`, and `IBGATEWAY_LOG_DIR` support for IB Gateway
   - Gateway IBC detection accepts both `ibgateway/<version>/jars` and direct `<version>/jars` under the configured Gateway install directory
+  - direct-root Gateway installs are mounted in the container as `/opt/ibgateway/latest`, matching IBC's expected Gateway path shape
+  - Gateway install marker detection uses the direct `ibgateway` launcher, so the wrapper does not reinstall Gateway every run
+  - `ibgateway.vmoptions` is patched to the current in-container path before launch
+  - JxBrowser key output is masked in service logs
+  - `/dev/dri` is mounted only when it exists
   - in-container JTS path is consistently `/home/tws/Jts`
   - `xvfb-run` added to the TWS package runtime inputs
 - Added headless IB Gateway Home Manager support:
   - `programs.ibkrLocal.gateway.enable`
   - per-profile `ibkr-gateway-<profile>.service` user services
   - per-profile `ibkr-gateway-reauth-<profile>` scripts installed into the home profile
-  - `main-live` is configured for read-only Gateway login via 1Password references
+  - `main-live` is configured for normal Gateway login via 1Password refs, `ReadOnlyApi=yes`, and `SecondFactorDevice=IB Key`
   - the service is not wanted by `default.target`; it is manually started by the reauth script
   - the service is tied to `graphical-session.target` with `PartOf`, so it stops with the graphical login session even when user linger is enabled
   - the service reads only an already-rendered runtime `ibc.ini`; 1Password access happens only in the manual reauth script
@@ -98,12 +105,14 @@ The live read-only login test now completes for the `crossing2p` IBKR item: IBC 
 - `ibc-config` refuses to read secrets unless `safe-op` is available.
 - `ibc-config` reads username/password through `safe-op read op://... --no-newline`; it does not call raw `op`.
 - `ibc-config --read-only-login` adds `ReadOnlyLogin=yes`; without the flag, the generated IBC config stays on the normal login path.
+- `ibc-config --second-factor-device VALUE` adds `SecondFactorDevice=VALUE`.
+- Gateway does not support `ReadOnlyLogin=yes`; use `ReadOnlyApi=yes` plus wrapper-level order mutation blocks for v1.
 - The Gateway service itself does not call `op` or `safe-op`; `ibkr-gateway-reauth-main-live` renders the ephemeral IBC config first, then starts the service.
 - The Gateway runtime credential config lives under `$XDG_RUNTIME_DIR/ibkr-local/main-live/ibc.ini` with mode `0600`.
 - The login test keeps the IBC credential config under a private temp runtime directory and deletes it on exit.
 - Do not override `XDG_RUNTIME_DIR` for 1Password secret reads; that breaks desktop-app socket discovery. Use `IBKR_IBC_RUNTIME_PARENT` for IBC config placement instead.
 - No secrets are written to Nix-managed files.
-- No Home Manager activation has been run.
+- Home Manager activation was run on 2026-07-05 to install and test `ibkr-gateway-main-live.service`.
 
 ## 1Password Metadata
 
@@ -115,7 +124,7 @@ Non-secret identifiers used for the successful test:
 - Password field: `password`
 - OTP field label observed in metadata: `one-time password`
 
-Treat the OTP as a secret. This should now be a fallback path only if read-only login cannot support the required local API operations. If it is needed, prefer:
+Treat the OTP as a secret. This is a fallback path only if the user wants to avoid the IBKR Mobile push approval path. If it is needed, prefer:
 
 ```bash
 safe-op read "op://3eyhyuvr6x6hvvajthxk5cn37u/3drrbjgoksyc3tuu4yxyvshjvq/one-time password?attribute=otp" --no-newline
@@ -181,35 +190,80 @@ Current headless Gateway service evidence from eval/build:
 - There is no `Install` attr, so the service is not auto-started from `default.target`.
 - `ExecStopPost` removes `%t/ibkr-local/main-live`.
 - The generated run script executes `ibkr-local gateway --profile main-live --xvfb --ibc`.
-- The generated reauth script stops the service, checks `graphical-session.target`, runs `op signin`, renders IBC config through `ibkr-local ibc-config`, installs it at mode `0600`, then starts the service.
+- The generated reauth script stops the service, checks `graphical-session.target`, gets a scoped raw `op signin` session token, exports the matching `OP_SESSION_*` variable only around `ibkr-local ibc-config`, unsets that session token immediately after render, validates the rendered config, installs it at mode `0600`, then starts the service.
 
-## Next Step: Test Headless Gateway Login and API
+## Gateway Runtime Attempt: 2026-07-05
 
-Goal: test the first live IB Gateway login through `ibkr-gateway-reauth-main-live`, then confirm the local API path supports the v1 operations: `connect`, `positions`, `balances`, `executions`, and `order-preview --preview`.
+Additional checks passed:
 
-Gateway login itself has not been runtime-tested yet. The successful read-only login evidence above is for TWS; Gateway has only been verified by package builds, Home Manager eval/build, generated service inspection, and script syntax checks.
+```bash
+bash -n packages/ibkr-local/ibkr-local.sh
+bash -n packages/tws/wrapper.sh
+git diff --check
+nix eval --json '.#homeConfigurations."xing@desktop".config.programs.ibkrLocal.gateway.profiles.main-live'
+nix build --no-link --print-out-paths .#packages.x86_64-linux.ibgateway -L
+nix build --no-link --print-out-paths .#packages.x86_64-linux.ibkr-local -L
+nix build --no-link --print-out-paths .#homeConfigurations."xing@desktop".activationPackage -L
+home-manager switch --flake .#xing@desktop
+```
+
+Latest successful package paths from this run:
+
+```text
+/nix/store/iw3r3f6x0w6xi9maj9kla99g9p3gi2gz-ibgateway
+/nix/store/lhi4xdsx6ip1h7hn7wdf83g4v70ln27r-ibkr-local
+/nix/store/r7vxzbspfq2aaix2a2nyym5by14vg7bz-home-manager-generation
+```
+
+Runtime findings:
+
+- Earlier testing used a single persistent shell for `op signin`, secret ref byte-count checks, and `ibkr-gateway-reauth-main-live`. The current intended flow is helper-owned: `ibkr-gateway-reauth-main-live` gets its own scoped raw `OP_SESSION_*` token and carries it through the `safe-op` render call so child processes do not need a second 1Password authorization.
+- The original `op://Private/...` refs failed for this item; switching to vault id `3eyhyuvr6x6hvvajthxk5cn37u` fixed username/password reads.
+- The first Gateway service run installed Gateway under `~/.local/share/ibkr/main-live/gateway`, but the wrapper failed to detect the direct-root layout. The package now mounts it as `/opt/ibgateway/latest`, and `ibgateway --screenshot-only` passed against the existing install.
+- With `ReadOnlyLogin=yes`, IBC logged `Read-only login not supported by Gateway`.
+- With `ReadOnlyLogin` off and `SecondFactorDevice=IB Key`, IBC rendered settings with `ReadOnlyApi=yes`, `SecondFactorDevice=IB Key`, and `TradingMode=live`; it clicked through to the phone approval path and logged `Second Factor Authentication initiated`.
+- Screenshot proof at `/tmp/ibgateway-2fa.png` showed `Open the IBKR notification on your phone`, `Notification sent`, and Gateway status `disconnected`.
+- Five `ibkr-local connect --profile main-live` probes returned connection refused on `127.0.0.1:7496` while Gateway waited for mobile approval.
+- An OTP fallback read using `safe-op read ".../one-time password?attribute=otp" --no-newline | wc -c` was attempted only as a byte-count check, but 1Password requested another authorization and the prompt was dismissed; no OTP was printed or used.
+- The pending Gateway service was stopped afterward. `ibkr-gateway-main-live.service` was inactive, and `%t/ibkr-local/main-live` was removed; only the empty `%t/ibkr-local` base directory remained.
+
+Follow-up on 2026-07-05:
+
+- The reauth helper was changed back to a scoped raw-session flow: it calls `op signin --raw`, tests candidate `OP_SESSION_*` names with `op whoami`, exports the matching variable only for the `ibkr-local ibc-config` render, then unsets it before validating and installing the config.
+- The updated helper was built and activated with `home-manager switch --flake .#xing@desktop`.
+- Latest activation package build path after that fix: `/nix/store/r7vxzbspfq2aaix2a2nyym5by14vg7bz-home-manager-generation`.
+- Three clean `op signin --raw` attempts in persistent shells timed out waiting for 1Password desktop authorization, so Gateway was not restarted after this helper change.
+- Current runtime state after the failed authorization attempts: `ibkr-gateway-main-live.service` is inactive and no Gateway/TWS/Podman runtime process is running.
+
+## Next Step: Complete Gateway 2FA and API Checks
+
+Goal: complete the first live IB Gateway login through `ibkr-gateway-reauth-main-live`, then confirm the local API path supports the v1 operations: `connect`, `positions`, `balances`, `executions`, and `order-preview --preview`.
+
+Gateway startup is runtime-tested through the IBKR Mobile 2FA approval prompt. API checks are still pending because the latest run did not receive the mobile approval.
 
 Recommended shape:
 
-1. Activate the Home Manager generation when ready:
+1. If code changed since the last activation, rebuild and activate Home Manager first:
 
 ```bash
 home-manager switch --flake .#xing@desktop
 ```
 
-2. Start/restart Gateway with manual reauth:
+Otherwise continue from the installed generation.
+
+2. Start/restart Gateway with manual reauth from a single local terminal session:
 
 ```bash
 ibkr-gateway-reauth-main-live
 ```
 
-Confirm from the user journal that `ibkr-gateway-main-live.service` starts and reaches an IBC read-only login state before running API checks:
+Confirm from the user journal that `ibkr-gateway-main-live.service` starts, selects `IB Key`, and reaches the mobile approval state:
 
 ```bash
 journalctl --user -u ibkr-gateway-main-live.service -f
 ```
 
-3. Run read-only API checks against `main-live`:
+Approve the IBKR Mobile notification when it arrives. Then run API checks against `main-live`:
 
 ```bash
 ibkr-local connect --profile main-live
@@ -218,7 +272,7 @@ ibkr-local balances --profile main-live
 ibkr-local executions --profile main-live
 ```
 
-4. Check whether upstream what-if preview works in a Gateway read-only login:
+4. Check whether upstream what-if preview works through Gateway:
 
 ```bash
 ibkr-local order-preview buy AAPL 1 --profile main-live --limit 100 --json
@@ -226,14 +280,14 @@ ibkr-local order-preview buy AAPL 1 --profile main-live --limit 100 --json
 
 5. Keep live order mutation blocked. Do not use `--submit`, `submit`, `cancel`, or `modify`.
 
-## Fallback: Fill 2FA From 1Password
+## Fallback: Avoid IB Key Push
 
-Only do this if the read-only login cannot support the required local API operations. If needed, when TWS reaches the `Second Factor Authentication` window, read the current OTP locally through `safe-op`, select the correct second-factor path if needed, and fill/submit the code without exposing it in logs or chat.
+Only do this if the user wants to avoid the IBKR Mobile push path. The OTP path was not completed on 2026-07-05 because 1Password required another authorization. If needed, keep the work in one local shell, authorize `op` immediately before reading OTP, select the correct second-factor path if needed, and fill/submit the code without exposing it in logs or chat.
 
 Recommended shape:
 
-1. Add a local helper owned by `packages/ibkr-local/test-ibc-login.sh` or a sibling script.
-2. Use `wmctrl`/`xdotool` or Java accessibility only for local window discovery and typing.
+1. Add a Gateway-specific local helper under `packages/ibkr-local/` that can attach to the Gateway Xvfb display owned by `ibkr-gateway-main-live.service`.
+2. Use `wmctrl`/`xdotool`, screenshots, or Java accessibility only for local window discovery and typing.
 3. Read the OTP inside that local helper via:
 
 ```bash
@@ -254,12 +308,12 @@ op://3eyhyuvr6x6hvvajthxk5cn37u/3drrbjgoksyc3tuu4yxyvshjvq/one-time password?att
 Open questions for the next pass:
 
 - Whether the `IB Key` path expects an app approval rather than a typed TOTP.
-- Whether `Mobile Authenticator app` exposes a code input after selecting it.
-- Whether the TWS Java UI is easier to drive through `xdotool` key events or Java accessibility.
+- Whether the Gateway `Mobile Authenticator app` or challenge/response link exposes a code input that can be filled locally.
+- Whether Gateway's Xvfb UI is easier to drive through `xdotool` key events or Java accessibility.
 
 ## Rollback Notes
 
-No activation has occurred. If a future session activates Home Manager, record the current generation first:
+Home Manager was activated during the 2026-07-05 Gateway runtime test. To inspect or roll back generations:
 
 ```bash
 home-manager generations

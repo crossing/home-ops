@@ -242,7 +242,7 @@ cmd_gateway() {
   local gateway_dir jts_dir log_dir
   gateway_dir=$(profile_string "$profile" "gatewayDir" "$HOME/.local/share/ibkr/$profile/ibgateway")
   jts_dir=$(profile_string "$profile" "gatewayJtsConfigDir" "$HOME/.config/ibkr-local/gateway-jts/$profile")
-  log_dir=$(profile_string "$profile" "gatewayLogDir" "$state_home/ibkr-local/$profile/gateway")
+  log_dir=$(profile_string "$profile" "gatewayLogDir" "$state_home/ibkr-local/gateway/$profile")
 
   mkdir -p "$gateway_dir" "$jts_dir" "$log_dir"
   IBGATEWAY_DIR="$gateway_dir" IBGATEWAY_CONFIG_DIR="$jts_dir" IBGATEWAY_LOG_DIR="$log_dir" exec ibgateway "$@"
@@ -296,7 +296,7 @@ JAVA
 
 cmd_ibc_config() {
   require_config
-  local profile="" username_ref="" password_ref="" username_item="" username_field="" username_vault="" password_item="" password_field="" password_vault="" trading_mode="" read_only_login=0
+  local profile="" username_ref="" password_ref="" username_item="" username_field="" username_vault="" password_item="" password_field="" password_vault="" trading_mode="" second_factor_device="" read_only_login=0
   while (($#)); do
     case "$1" in
       -p|--profile)
@@ -337,6 +337,10 @@ cmd_ibc_config() {
         ;;
       --trading-mode)
         trading_mode=$2
+        shift 2
+        ;;
+      --second-factor-device)
+        second_factor_device=$2
         shift 2
         ;;
       --read-only-login)
@@ -381,6 +385,9 @@ cmd_ibc_config() {
     printf 'ReadOnlyApi=yes\n'
     if [[ "$read_only_login" == "1" ]]; then
       printf 'ReadOnlyLogin=yes\n'
+    fi
+    if [[ -n "$second_factor_device" ]]; then
+      printf 'SecondFactorDevice=%s\n' "$second_factor_device"
     fi
     printf 'AcceptIncomingConnectionAction=accept\n'
   } > "$config_path"

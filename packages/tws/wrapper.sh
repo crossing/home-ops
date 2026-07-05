@@ -80,6 +80,18 @@ restore_ibc_launchers() {
   done
 }
 
+patch_vmoptions_path() {
+  local vmoptions="$INSTALL_DIR/$APP_ID.vmoptions"
+  [ -f "$vmoptions" ] || return 0
+  sed -i "s#^-DvmOptionsPath=.*#-DvmOptionsPath=$IBKR_CONTAINER_INSTALL_ROOT/$APP_ID.vmoptions#" "$vmoptions"
+}
+
+sanitize_output() {
+  sed -E \
+    -e 's/(jxBrowserKey = )[[:alnum:]]+/\1***/g' \
+    -e 's/(-DjxBrowserKey=)[^[:space:]]+/\1***/g'
+}
+
 detect_versioned_install() {
   local host_root=$1 container_path=$2 version
 
@@ -119,6 +131,10 @@ detect_ibc_install() {
         return 0
       fi
       if detect_versioned_install "$INSTALL_DIR" "$IBKR_IBC_VERSION_PATH"; then
+        return 0
+      fi
+      if [ -d "$INSTALL_DIR/jars" ]; then
+        printf '%s\t%s\n' "$IBKR_IBC_VERSION_PATH" "$(basename "$IBKR_CONTAINER_INSTALL_ROOT")"
         return 0
       fi
       ;;
@@ -317,6 +333,7 @@ if [ ! -f "$install_marker_path" ]; then
 fi
 
 restore_ibc_launchers
+patch_vmoptions_path
 
 if [ "$SCREENSHOT_ONLY" = "1" ]; then
   echo "$APP_LABEL image/install check passed for $IMAGE_NAME"
@@ -328,7 +345,6 @@ podman_args=(
   --net=host
   --userns=keep-id
   --shm-size=2g
-  --device /dev/dri
   -u "$USER_ID:$GROUP_ID"
   -v "$INSTALL_DIR:$IBKR_CONTAINER_INSTALL_ROOT"
   -v "$CONFIG_DIR:/home/tws/Jts"
@@ -341,6 +357,10 @@ podman_args=(
   -e "JAVA_TOOL_OPTIONS=-Dsun.java2d.uiScale=2 -Duser.home=/home/tws"
   -e "INSTALL4J_JAVA_HOME_OVERRIDE=$IBKR_CONTAINER_APP_HOME/jre"
 )
+
+if [ -e /dev/dri ]; then
+  podman_args+=(--device /dev/dri)
+fi
 
 if [ "$DISPLAY_MODE" = "visible" ] && [ -n "${WAYLAND_DISPLAY:-}" ] && [ -n "${XDG_RUNTIME_DIR:-}" ]; then
   WAYLAND_SOCKET_PATH="$XDG_RUNTIME_DIR/$WAYLAND_DISPLAY"
@@ -405,8 +425,11 @@ fi
 
 if [ "$APP_MODE" = "ibc" ]; then
   trap restore_ibc_launchers EXIT
-  podman run "${podman_args[@]}" "$IMAGE_NAME" "${container_cmd[@]}"
-  exit $?
+  set +e
+  podman run "${podman_args[@]}" "$IMAGE_NAME" "${container_cmd[@]}" 2>&1 | sanitize_output
+  status=${PIPESTATUS[0]}
+  set -e
+  exit "$status"
 fi
 
 exec podman run "${podman_args[@]}" "$IMAGE_NAME" "${container_cmd[@]}"
