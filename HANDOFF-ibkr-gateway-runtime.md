@@ -24,7 +24,7 @@ ibkr-gateway-reauth-main-live
 
 The helper requires an active `graphical-session.target`. It takes a nonblocking per-profile lock, obtains or reuses one process-scoped 1Password CLI session, and renders username and password through `safe-op`. It then unsets the scoped session before validating and installing the configuration. The token is not persisted, logged, placed in argv, or passed to the systemd user manager.
 
-The authenticator step is deliberately manual. If prompted, complete the challenge in the Gateway UI. There is no command in this workflow that retrieves an authenticator code.
+The second-factor step is deliberately manual. The live test exposed no authenticator-code option; complete the IBKR challenge manually using the method Gateway offers. The 1Password OTP field is not read or automated.
 
 The helper stops an existing service and refuses to proceed if it remains active. It installs the runtime config, starts the service, and transfers ownership of that config only after systemd confirms the service is active. On a failed handoff, cleanup removes the runtime credentials unless a valid running service owns them. `ExistingSessionDetectedAction=secondary` prevents the new Gateway login from overriding another trading session: IBC 3.24.1 documents that the existing session continues and the newly started session terminates.
 
@@ -54,10 +54,10 @@ ibkr-local doctor --profile main-live
 ibkr-local connect --profile main-live
 ibkr-local positions --profile main-live
 ibkr-local balances --profile main-live
-ibkr-local order-preview buy AAPL 1 --profile main-live --limit 100 --json
+ibkr-local order-preview buy AAPL 1 --profile main-live --type LMT --limit 100 --json
 ```
 
-The generated IBC config requires `ReadOnlyApi=yes`. Mutation arguments are rejected, and the order wrapper always adds preview mode. This is defense in depth; it is not authorization to test live submission.
+`main-live` sets `ReadOnlyApi=no` because IBKR requires API write access even for what-if order previews. The constrained wrapper still rejects submit, cancel, and modify operations and always adds preview mode. Do not bypass `ibkr-local` with the upstream CLI.
 
 ## Rebuild and static verification
 

@@ -234,7 +234,7 @@ cmd_gateway() {
 
 cmd_ibc_config() {
   require_config
-  local profile="" username_ref="" password_ref="" username_item="" username_field="" username_vault="" password_item="" password_field="" password_vault="" trading_mode="" api_port="" second_factor_device="" auto_restart_time="" read_only_login=0
+  local profile="" username_ref="" password_ref="" username_item="" username_field="" username_vault="" password_item="" password_field="" password_vault="" trading_mode="" api_port="" second_factor_device="" auto_restart_time="" read_only_login=0 read_only_api=yes
   while (($#)); do
     case "$1" in
       -p|--profile)
@@ -293,6 +293,10 @@ cmd_ibc_config() {
         read_only_login=1
         shift
         ;;
+      --allow-api-write)
+        read_only_api=no
+        shift
+        ;;
       *)
         die "unknown ibc-config option: $1"
         ;;
@@ -340,7 +344,7 @@ cmd_ibc_config() {
     printf 'IbLoginId=%s\n' "$username"
     printf 'IbPassword=%s\n' "$password"
     printf 'TradingMode=%s\n' "$mode"
-    printf 'ReadOnlyApi=yes\n'
+    printf 'ReadOnlyApi=%s\n' "$read_only_api"
     printf 'OverrideTwsApiPort=%s\n' "$api_port"
     if [[ "$read_only_login" == "1" ]]; then
       printf 'ReadOnlyLogin=yes\n'

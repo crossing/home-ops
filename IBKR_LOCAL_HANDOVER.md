@@ -1,6 +1,6 @@
 # Local IBKR integration handover
 
-This branch provides a local-only, read-only Interactive Brokers integration built around IB Gateway, IBC, `ibkr-cli`, and `ibkr-local`. There is no workstation runtime or package in this integration.
+This branch provides a local-only Interactive Brokers integration built around IB Gateway, IBC, `ibkr-cli`, and the constrained `ibkr-local` interface. There is no workstation runtime or package in this integration.
 
 ## Architecture and safety boundary
 
@@ -9,7 +9,7 @@ This branch provides a local-only, read-only Interactive Brokers integration bui
 - `packages/ibkr-local` selects configured profiles, launches Gateway, renders ephemeral IBC configuration, and forces order commands into preview mode.
 - `modules/home/ibkr-local` generates profile configuration, the per-profile start/reauth helper, and the Gateway user service.
 
-The API is configured read-only. Mutation requests fail closed, and order preview remains preview-only. Username and password are read with `safe-op` during one process-scoped 1Password CLI session and written only to a mode-0600 file below `$XDG_RUNTIME_DIR`. The session token is unset immediately after rendering and is not passed to systemd or stored on disk. The authenticator code is never retrieved or automated: complete that challenge manually in the Gateway UI.
+`main-live` enables Gateway API write access because IBKR requires it for what-if previews, but `ibkr-local` rejects submit, cancel, and modify operations and forces order requests into preview mode. Username and password are read with `safe-op` during one process-scoped 1Password CLI session and written only to a mode-0600 file below `$XDG_RUNTIME_DIR`. Any session token is unset immediately after rendering and is not passed to systemd or stored on disk. The live test exposed no authenticator-code option; the 1Password OTP field remains unused and the offered IBKR second-factor challenge is completed manually.
 
 ## Installed profiles and ports
 
@@ -51,7 +51,7 @@ ibkr-local doctor --profile main-live
 ibkr-local connect --profile main-live
 ibkr-local positions --profile main-live
 ibkr-local balances --profile main-live
-ibkr-local order-preview buy AAPL 1 --profile main-live --limit 100 --json
+ibkr-local order-preview buy AAPL 1 --profile main-live --type LMT --limit 100 --json
 ```
 
 ## Authentication lifetime

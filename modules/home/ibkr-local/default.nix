@@ -97,6 +97,12 @@ let
         description = "Whether the generated IBC config should request a read-only login.";
       };
 
+      readOnlyApi = lib.mkOption {
+        type = lib.types.bool;
+        default = true;
+        description = "Whether Gateway rejects API operations that require write access; ibkr-local still blocks live order mutation when disabled.";
+      };
+
       secondFactorDevice = lib.mkOption {
         type = lib.types.nullOr lib.types.str;
         default = null;
@@ -317,6 +323,9 @@ let
       if [[ ${if gatewayProfile.readOnlyLogin then "1" else "0"} == 1 ]]; then
         args+=(--read-only-login)
       fi
+      if [[ ${if gatewayProfile.readOnlyApi then "0" else "1"} == 1 ]]; then
+        args+=(--allow-api-write)
+      fi
       if [[ -n ${lib.escapeShellArg secondFactorDevice} ]]; then
         args+=(--second-factor-device ${lib.escapeShellArg secondFactorDevice})
       fi
@@ -354,8 +363,8 @@ let
       [[ "$rendered_trading_mode" == ${lib.escapeShellArg profile.mode} ]] \
         || die "rendered IBC config TradingMode does not match profile mode"
 
-      ${pkgs.gnugrep}/bin/grep -qx 'ReadOnlyApi=yes' "$rendered_config" \
-        || die "rendered IBC config is missing ReadOnlyApi=yes"
+      ${pkgs.gnugrep}/bin/grep -qx ${lib.escapeShellArg "ReadOnlyApi=${if gatewayProfile.readOnlyApi then "yes" else "no"}"} "$rendered_config" \
+        || die "rendered IBC config has the wrong ReadOnlyApi policy"
       ${pkgs.gnugrep}/bin/grep -Fxq ${lib.escapeShellArg "OverrideTwsApiPort=${toString profile.port}"} "$rendered_config" \
         || die "rendered IBC config does not override Gateway's API listener to the profile port"
 
