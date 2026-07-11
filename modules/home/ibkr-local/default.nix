@@ -249,6 +249,7 @@ let
       render_parent=""
       session=""
       session_env=""
+      owns_target_config=0
       cleanup() {
         if [[ -n "''${session_env:-}" ]]; then
           unset "$session_env" || true
@@ -256,6 +257,13 @@ let
         unset session || true
         if [[ -n "''${render_parent:-}" && -d "$render_parent" ]]; then
           ${pkgs.coreutils}/bin/rm -rf "$render_parent"
+        fi
+        if [[ "''${owns_target_config:-0}" == 1 ]]; then
+          if ${pkgs.systemd}/bin/systemctl --user -q is-active ${lib.escapeShellArg serviceName}; then
+            : # The running service owns its credential config and ExecStopPost cleanup.
+          else
+            ${pkgs.coreutils}/bin/rm -rf "$target_dir"
+          fi
         fi
       }
       trap cleanup EXIT
@@ -360,15 +368,25 @@ let
       ${pkgs.gnugrep}/bin/grep -qx 'ExistingSessionDetectedAction=secondary' "$rendered_config" \
         || die "rendered IBC config does not fail closed on an existing session"
 
-      ${pkgs.systemd}/bin/systemctl --user stop ${lib.escapeShellArg serviceName} || true
+      ${pkgs.systemd}/bin/systemctl --user stop ${lib.escapeShellArg serviceName} \
+        || die "failed to stop the existing Gateway service"
+      if ${pkgs.systemd}/bin/systemctl --user -q is-active ${lib.escapeShellArg serviceName}; then
+        die "Gateway service is still active after stop"
+      fi
       ${pkgs.coreutils}/bin/mkdir -p "$target_dir"
       ${pkgs.coreutils}/bin/chmod 700 "$target_dir"
       ${pkgs.coreutils}/bin/rm -f "$target_dir/ibc.ini"
       ${pkgs.coreutils}/bin/install -m 0600 "$rendered_config" "$target_dir/ibc.ini"
+      owns_target_config=1
       ${pkgs.coreutils}/bin/rm -rf "$render_parent"
       render_parent=""
 
-      ${pkgs.systemd}/bin/systemctl --user start ${lib.escapeShellArg serviceName}
+      if ! ${pkgs.systemd}/bin/systemctl --user start ${lib.escapeShellArg serviceName}; then
+        die "failed to start the Gateway service; runtime credentials will be removed unless the service is active"
+      fi
+      ${pkgs.systemd}/bin/systemctl --user -q is-active ${lib.escapeShellArg serviceName} \
+        || die "Gateway service did not become active; runtime credentials will be removed"
+      owns_target_config=0
       echo "IB Gateway ${name} started; complete any authenticator challenge manually in the Gateway UI." >&2
     '';
 
