@@ -3,8 +3,11 @@
 let
   cfg = config.programs.ibkrLocal;
   defaultPackage = pkgs.${namespace}.ibkr-local;
+  dataHome = config.xdg.dataHome;
+  configHome = config.xdg.configHome;
+  stateHome = config.xdg.stateHome;
 
-  profileType = lib.types.submodule ({ name, ... }: {
+  profileType = lib.types.submodule ({ name, config, ... }: {
     options = {
       ibkrProfile = lib.mkOption {
         type = lib.types.str;
@@ -15,12 +18,13 @@ let
       host = lib.mkOption {
         type = lib.types.str;
         default = "127.0.0.1";
-        description = "TWS or IB Gateway API host.";
+        description = "IB Gateway API host.";
       };
 
       port = lib.mkOption {
         type = lib.types.port;
-        description = "TWS or IB Gateway API port.";
+        default = if config.mode == "live" then 4001 else 4002;
+        description = "IB Gateway API port (4001 live, 4002 paper by default).";
       };
 
       clientId = lib.mkOption {
@@ -35,40 +39,22 @@ let
         description = "Trading mode for diagnostics and generated IBC config.";
       };
 
-      twsDir = lib.mkOption {
-        type = lib.types.str;
-        default = "${config.xdg.dataHome}/ibkr/${name}/tws";
-        description = "Persistent TWS install directory for this profile.";
-      };
-
       jtsConfigDir = lib.mkOption {
         type = lib.types.str;
-        default = "${config.xdg.configHome}/ibkr-local/jts/${name}";
-        description = "Jts configuration directory mounted into TWS for this profile.";
+        default = "${configHome}/ibkr-local/jts/${name}";
+        description = "Jts configuration directory mounted into IB Gateway for this profile.";
       };
 
       logDir = lib.mkOption {
         type = lib.types.str;
-        default = "${config.xdg.stateHome}/ibkr-local/${name}";
+        default = "${stateHome}/ibkr-local/${name}";
         description = "Runtime log directory for this profile.";
       };
 
       gatewayDir = lib.mkOption {
         type = lib.types.str;
-        default = "${config.xdg.dataHome}/ibkr/${name}/gateway";
+        default = "${dataHome}/ibkr/${name}/gateway";
         description = "Persistent IB Gateway install directory for this profile.";
-      };
-
-      gatewayJtsConfigDir = lib.mkOption {
-        type = lib.types.str;
-        default = "${config.xdg.configHome}/ibkr-local/gateway-jts/${name}";
-        description = "Jts configuration directory mounted into IB Gateway for this profile.";
-      };
-
-      gatewayLogDir = lib.mkOption {
-        type = lib.types.str;
-        default = "${config.xdg.stateHome}/ibkr-local/gateway/${name}";
-        description = "Runtime IB Gateway log directory for this profile.";
       };
 
       accounts = lib.mkOption {
@@ -154,12 +140,9 @@ let
         port
         clientId
         mode
-        twsDir
         jtsConfigDir
         logDir
         gatewayDir
-        gatewayJtsConfigDir
-        gatewayLogDir
         accounts
         ;
     }) cfg.profiles;
@@ -211,14 +194,14 @@ let
 
       ${pkgs.coreutils}/bin/mkdir -p \
         ${lib.escapeShellArg profile.gatewayDir} \
-        ${lib.escapeShellArg profile.gatewayJtsConfigDir} \
-        ${lib.escapeShellArg profile.gatewayLogDir}
+        ${lib.escapeShellArg profile.jtsConfigDir} \
+        ${lib.escapeShellArg profile.logDir}
 
       export IBKR_LOCAL_PROFILES=${lib.escapeShellArg profilesJsonFile}
       export IBC_INI="$ibc_ini"
       export IBGATEWAY_DIR=${lib.escapeShellArg profile.gatewayDir}
-      export IBGATEWAY_CONFIG_DIR=${lib.escapeShellArg profile.gatewayJtsConfigDir}
-      export IBGATEWAY_LOG_DIR=${lib.escapeShellArg profile.gatewayLogDir}
+      export IBGATEWAY_CONFIG_DIR=${lib.escapeShellArg profile.jtsConfigDir}
+      export IBGATEWAY_LOG_DIR=${lib.escapeShellArg profile.logDir}
 
       exec ${cfg.package}/bin/ibkr-local ${gatewayArgs}
     '';
@@ -426,7 +409,7 @@ in
     profiles = lib.mkOption {
       type = lib.types.attrsOf profileType;
       default = { };
-      description = "Local IBKR API/TWS runtime profiles.";
+      description = "Local IBKR API and Gateway runtime profiles.";
     };
 
     accounts = lib.mkOption {

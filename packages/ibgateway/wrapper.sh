@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-APP_ID="${IBKR_APP_ID:-tws}"
-APP_LABEL="${IBKR_APP_LABEL:-TWS}"
-APP_CLI_NAME="${IBKR_APP_CLI_NAME:-$APP_ID}"
+APP_ID="ibgateway"
+APP_LABEL="IB Gateway"
+APP_CLI_NAME="ibgateway"
 
 home_default() {
   local value=$1
@@ -40,22 +40,7 @@ Environment:
   IBKR_TRADING_MODE  Override IBC TradingMode; defaults to ibc.ini.
 USAGE
 
-  case "$APP_ID" in
-    tws)
-      cat <<'USAGE'
-  TWS_DIR            TWS install directory alias.
-  CONFIG_DIR         TWS Jts config directory alias.
-  TWS_LOG_DIR        TWS log directory alias.
-  TWS_DISPLAY_MODE   TWS display mode alias.
-  TWS_MODE           TWS mode alias; "ibc" starts IBC.
-  TWS_APP_MODE       TWS app mode alias.
-  TWS_XVFB_GEOMETRY  TWS Xvfb geometry alias.
-  IBC_TWS_VERSION    TWS IBC version override alias.
-  IBC_TRADING_MODE   TWS IBC trading mode alias.
-USAGE
-      ;;
-    ibgateway)
-      cat <<'USAGE'
+  cat <<'USAGE'
   IBGATEWAY_DIR            Gateway install directory alias.
   IBGATEWAY_CONFIG_DIR     Gateway Jts config directory alias.
   IBGATEWAY_LOG_DIR        Gateway log directory alias.
@@ -66,24 +51,18 @@ USAGE
   IBC_GATEWAY_VERSION      Gateway IBC version override alias.
   IBC_GATEWAY_TRADING_MODE Gateway IBC trading mode alias.
 USAGE
-      ;;
-  esac
 }
 
 restore_ibc_launchers() {
-  local rel backup
-  for rel in ${IBKR_RESTORE_LAUNCHERS:-}; do
-    backup="${rel}1"
-    if [ ! -e "$INSTALL_DIR/$rel" ] && [ -e "$INSTALL_DIR/$backup" ]; then
-      mv "$INSTALL_DIR/$backup" "$INSTALL_DIR/$rel"
-    fi
-  done
+  if [ ! -e "$INSTALL_DIR/ibgateway" ] && [ -e "$INSTALL_DIR/ibgateway1" ]; then
+    mv "$INSTALL_DIR/ibgateway1" "$INSTALL_DIR/ibgateway"
+  fi
 }
 
 patch_vmoptions_path() {
   local vmoptions="$INSTALL_DIR/$APP_ID.vmoptions"
   [ -f "$vmoptions" ] || return 0
-  sed -i "s#^-DvmOptionsPath=.*#-DvmOptionsPath=$IBKR_CONTAINER_INSTALL_ROOT/$APP_ID.vmoptions#" "$vmoptions"
+  sed -i "s#^-DvmOptionsPath=.*#-DvmOptionsPath=/opt/ibgateway/latest/$APP_ID.vmoptions#" "$vmoptions"
 }
 
 sanitize_output() {
@@ -113,45 +92,26 @@ detect_versioned_install() {
 
 detect_ibc_install() {
   if [ -n "${IBC_VERSION_OVERRIDE:-}" ]; then
-    printf '%s\t%s\n' "$IBKR_IBC_VERSION_PATH" "$IBC_VERSION_OVERRIDE"
+    printf '%s\t%s\n' "/opt" "$IBC_VERSION_OVERRIDE"
     return 0
   fi
 
-  case "$IBKR_IBC_LAYOUT" in
-    tws)
-      if detect_versioned_install "$INSTALL_DIR" "$IBKR_IBC_VERSION_PATH"; then
-        return 0
-      fi
-
-      if [ -d "$INSTALL_DIR/jars" ]; then
-        printf '/opt\ttws\n'
-        return 0
-      fi
-      ;;
-    ibgateway)
-      if detect_versioned_install "$INSTALL_DIR/ibgateway" "$IBKR_IBC_VERSION_PATH"; then
-        return 0
-      fi
-      if detect_versioned_install "$INSTALL_DIR" "$IBKR_IBC_VERSION_PATH"; then
-        return 0
-      fi
-      if [ -d "$INSTALL_DIR/jars" ]; then
-        printf '%s\t%s\n' "$IBKR_IBC_VERSION_PATH" "$(basename "$IBKR_CONTAINER_INSTALL_ROOT")"
-        return 0
-      fi
-      ;;
-    *)
-      echo "$APP_CLI_NAME: unsupported IBC layout: $IBKR_IBC_LAYOUT" >&2
-      exit 2
-      ;;
-  esac
-
+  if detect_versioned_install "$INSTALL_DIR/ibgateway" "/opt"; then
+    return 0
+  fi
+  if detect_versioned_install "$INSTALL_DIR" "/opt"; then
+    return 0
+  fi
+  if [ -d "$INSTALL_DIR/jars" ]; then
+    printf '%s\t%s\n' "/opt" "latest"
+    return 0
+  fi
   return 0
 }
 
-default_install_dir=$(home_default "${IBKR_DEFAULT_INSTALL_DIR:-.local/opt/$APP_ID}")
-default_config_dir=$(home_default "${IBKR_DEFAULT_CONFIG_DIR:-.config/$APP_ID}")
-default_log_dir=$(home_default "${IBKR_DEFAULT_LOG_DIR:-.local/state/$APP_ID}")
+default_install_dir=$(home_default ".local/opt/ibgateway")
+default_config_dir=$(home_default ".config/ibgateway")
+default_log_dir=$(home_default ".local/state/ibgateway")
 
 DISPLAY_MODE="${IBKR_DISPLAY_MODE:-${IBKR_MODE:-}}"
 APP_MODE="${IBKR_APP_MODE:-direct}"
@@ -159,34 +119,14 @@ XVFB_GEOMETRY="${IBKR_XVFB_GEOMETRY:-1920x1080x24}"
 IBC_VERSION_OVERRIDE="${IBC_APP_VERSION:-${IBKR_IBC_VERSION:-}}"
 IBC_TRADING_MODE_VALUE="${IBKR_TRADING_MODE:-}"
 
-case "$APP_ID" in
-  tws)
-    INSTALL_DIR="${TWS_DIR:-${IBKR_INSTALL_DIR:-$default_install_dir}}"
-    CONFIG_DIR="${CONFIG_DIR:-${TWS_CONFIG_DIR:-${IBKR_CONFIG_DIR:-$default_config_dir}}}"
-    LOG_DIR="${TWS_LOG_DIR:-${IBKR_LOG_DIR:-$default_log_dir}}"
-    DISPLAY_MODE="${TWS_DISPLAY_MODE:-${TWS_MODE:-${DISPLAY_MODE:-visible}}}"
-    APP_MODE="${TWS_APP_MODE:-$APP_MODE}"
-    XVFB_GEOMETRY="${TWS_XVFB_GEOMETRY:-$XVFB_GEOMETRY}"
-    IBC_VERSION_OVERRIDE="${IBC_TWS_VERSION:-$IBC_VERSION_OVERRIDE}"
-    IBC_TRADING_MODE_VALUE="${IBC_TRADING_MODE:-$IBC_TRADING_MODE_VALUE}"
-    ;;
-  ibgateway)
-    INSTALL_DIR="${IBGATEWAY_DIR:-${IBKR_INSTALL_DIR:-$default_install_dir}}"
-    CONFIG_DIR="${IBGATEWAY_CONFIG_DIR:-${IBKR_CONFIG_DIR:-$default_config_dir}}"
-    LOG_DIR="${IBGATEWAY_LOG_DIR:-${IBKR_LOG_DIR:-$default_log_dir}}"
-    DISPLAY_MODE="${IBGATEWAY_DISPLAY_MODE:-${IBGATEWAY_MODE:-${DISPLAY_MODE:-visible}}}"
-    APP_MODE="${IBGATEWAY_APP_MODE:-$APP_MODE}"
-    XVFB_GEOMETRY="${IBGATEWAY_XVFB_GEOMETRY:-$XVFB_GEOMETRY}"
-    IBC_VERSION_OVERRIDE="${IBC_GATEWAY_VERSION:-$IBC_VERSION_OVERRIDE}"
-    IBC_TRADING_MODE_VALUE="${IBC_GATEWAY_TRADING_MODE:-$IBC_TRADING_MODE_VALUE}"
-    ;;
-  *)
-    INSTALL_DIR="${IBKR_INSTALL_DIR:-$default_install_dir}"
-    CONFIG_DIR="${IBKR_CONFIG_DIR:-$default_config_dir}"
-    LOG_DIR="${IBKR_LOG_DIR:-$default_log_dir}"
-    DISPLAY_MODE="${DISPLAY_MODE:-visible}"
-    ;;
-esac
+INSTALL_DIR="${IBGATEWAY_DIR:-${IBKR_INSTALL_DIR:-$default_install_dir}}"
+CONFIG_DIR="${IBGATEWAY_CONFIG_DIR:-${IBKR_CONFIG_DIR:-$default_config_dir}}"
+LOG_DIR="${IBGATEWAY_LOG_DIR:-${IBKR_LOG_DIR:-$default_log_dir}}"
+DISPLAY_MODE="${IBGATEWAY_DISPLAY_MODE:-${IBGATEWAY_MODE:-${DISPLAY_MODE:-visible}}}"
+APP_MODE="${IBGATEWAY_APP_MODE:-$APP_MODE}"
+XVFB_GEOMETRY="${IBGATEWAY_XVFB_GEOMETRY:-$XVFB_GEOMETRY}"
+IBC_VERSION_OVERRIDE="${IBC_GATEWAY_VERSION:-$IBC_VERSION_OVERRIDE}"
+IBC_TRADING_MODE_VALUE="${IBC_GATEWAY_TRADING_MODE:-$IBC_TRADING_MODE_VALUE}"
 
 DISPLAY_MODE="${DISPLAY_MODE:-visible}"
 APP_MODE="${APP_MODE:-direct}"
@@ -270,18 +210,12 @@ if [ "$APP_MODE" = "ibc" ]; then
 fi
 
 DOCKERFILE="${DOCKERFILE:?DOCKERFILE is required}"
-IBKR_INSTALL_URL="${IBKR_INSTALL_URL:?IBKR_INSTALL_URL is required}"
-IBKR_CONTAINER_INSTALL_ROOT="${IBKR_CONTAINER_INSTALL_ROOT:?IBKR_CONTAINER_INSTALL_ROOT is required}"
-IBKR_CONTAINER_APP_HOME="${IBKR_CONTAINER_APP_HOME:?IBKR_CONTAINER_APP_HOME is required}"
-IBKR_APP_LAUNCHER="${IBKR_APP_LAUNCHER:?IBKR_APP_LAUNCHER is required}"
-IBKR_INSTALL_MARKER="${IBKR_INSTALL_MARKER:?IBKR_INSTALL_MARKER is required}"
-IBKR_IBC_LAYOUT="${IBKR_IBC_LAYOUT:?IBKR_IBC_LAYOUT is required}"
-IBKR_IBC_VERSION_PATH="${IBKR_IBC_VERSION_PATH:?IBKR_IBC_VERSION_PATH is required}"
+IBGATEWAY_INSTALL_URL="${IBGATEWAY_INSTALL_URL:?IBGATEWAY_INSTALL_URL is required}"
 
 IMAGE_NAME="$APP_ID:$(md5sum "$DOCKERFILE" | cut -c1-8)"
 USER_ID=$(id -u)
 GROUP_ID=$(id -g)
-install_marker_path="$INSTALL_DIR/$IBKR_INSTALL_MARKER"
+install_marker_path="$INSTALL_DIR/ibgateway"
 
 mkdir -p "$INSTALL_DIR" "$CONFIG_DIR" "$LOG_DIR"
 restore_ibc_launchers
@@ -300,13 +234,13 @@ if [ ! -f "$install_marker_path" ]; then
   podman run --rm \
     --userns=keep-id \
     -u "$USER_ID:$GROUP_ID" \
-    -v "$INSTALL_DIR:$IBKR_CONTAINER_INSTALL_ROOT" \
+    -v "$INSTALL_DIR:/opt/ibgateway/latest" \
     -v "$I4J_TEMP:/opt/i4j_jres" \
-    -e "HOME=/home/tws" \
+    -e "HOME=/home/ibgateway" \
     "$IMAGE_NAME" \
-    bash -c "curl -L -o /tmp/$APP_ID-installer.sh '$IBKR_INSTALL_URL' && \
+    bash -c "curl -L -o /tmp/$APP_ID-installer.sh '$IBGATEWAY_INSTALL_URL' && \
              chmod +x /tmp/$APP_ID-installer.sh && \
-             INSTALL4J_KEEP_TEMP=true /tmp/$APP_ID-installer.sh -q -dir '$IBKR_CONTAINER_INSTALL_ROOT'"
+             INSTALL4J_KEEP_TEMP=true /tmp/$APP_ID-installer.sh -q -dir '/opt/ibgateway/latest'"
 
   echo "Installer finished. Proceeding to Step 2..."
 
@@ -314,22 +248,22 @@ if [ ! -f "$install_marker_path" ]; then
   podman run --rm \
     --userns=keep-id \
     -u "$USER_ID:$GROUP_ID" \
-    -v "$INSTALL_DIR:$IBKR_CONTAINER_INSTALL_ROOT" \
+    -v "$INSTALL_DIR:/opt/ibgateway/latest" \
     -v "$I4J_TEMP:/opt/i4j_jres" \
-    -e "HOME=/home/tws" \
+    -e "HOME=/home/ibgateway" \
     "$IMAGE_NAME" \
     bash -c "JRE_BIN=\$(find /opt/i4j_jres -maxdepth 3 -name bin -type d | head -n 1) ; \
              if [ -n \"\$JRE_BIN\" ]; then \
                JRE_DIR=\$(dirname \"\$JRE_BIN\") ; \
-               echo \"Moving bundled JRE from \$JRE_DIR to $IBKR_CONTAINER_APP_HOME/jre...\" ; \
-               mkdir -p '$IBKR_CONTAINER_APP_HOME/jre' ; \
-               cp -r \"\$JRE_DIR\"/* '$IBKR_CONTAINER_APP_HOME/jre/' ; \
+               echo \"Moving bundled JRE from \$JRE_DIR to /opt/ibgateway/latest/jre...\" ; \
+               mkdir -p '/opt/ibgateway/latest/jre' ; \
+               cp -r \"\$JRE_DIR\"/* '/opt/ibgateway/latest/jre/' ; \
              fi ; \
-             if [ -f '$IBKR_APP_LAUNCHER' ]; then \
-               sed -i 's/ver_minor -lt 16/ver_minor -lt 0/' '$IBKR_APP_LAUNCHER' ; \
-               sed -i 's/ver_micro -lt 16/ver_micro -lt 0/' '$IBKR_APP_LAUNCHER' ; \
+             if [ -f '/opt/ibgateway/latest/ibgateway' ]; then \
+               sed -i 's/ver_minor -lt 16/ver_minor -lt 0/' '/opt/ibgateway/latest/ibgateway' ; \
+               sed -i 's/ver_micro -lt 16/ver_micro -lt 0/' '/opt/ibgateway/latest/ibgateway' ; \
              fi ; \
-             chown -R $USER_ID:$GROUP_ID '$IBKR_CONTAINER_INSTALL_ROOT'"
+             chown -R $USER_ID:$GROUP_ID '/opt/ibgateway/latest'"
 
   rm -rf "$I4J_TEMP"
 fi
@@ -348,16 +282,16 @@ podman_args=(
   --userns=keep-id
   --shm-size=2g
   -u "$USER_ID:$GROUP_ID"
-  -v "$INSTALL_DIR:$IBKR_CONTAINER_INSTALL_ROOT"
-  -v "$CONFIG_DIR:/home/tws/Jts"
-  -v "$LOG_DIR:/home/tws/ibkr-logs"
+  -v "$INSTALL_DIR:/opt/ibgateway/latest"
+  -v "$CONFIG_DIR:/home/ibgateway/Jts"
+  -v "$LOG_DIR:/home/ibgateway/ibkr-logs"
   -v /tmp/.X11-unix:/tmp/.X11-unix
   -e DISPLAY
   -e "GDK_SCALE=2"
-  -e "HOME=/home/tws"
+  -e "HOME=/home/ibgateway"
   -e "INSTALL4J_NO_DB=true"
-  -e "JAVA_TOOL_OPTIONS=-Dsun.java2d.uiScale=2 -Duser.home=/home/tws"
-  -e "INSTALL4J_JAVA_HOME_OVERRIDE=$IBKR_CONTAINER_APP_HOME/jre"
+  -e "JAVA_TOOL_OPTIONS=-Dsun.java2d.uiScale=2 -Duser.home=/home/ibgateway"
+  -e "INSTALL4J_JAVA_HOME_OVERRIDE=/opt/ibgateway/latest/jre"
 )
 
 if [ -e /dev/dri ]; then
@@ -381,10 +315,10 @@ if [ -n "${XAUTHORITY:-}" ] && [ -f "${XAUTHORITY:-}" ]; then
 fi
 
 if [ -n "${IBC_INI:-}" ]; then
-  podman_args+=(-v "$IBC_INI:/home/tws/ibc.ini:ro" -e "IBC_INI=/home/tws/ibc.ini")
+  podman_args+=(-v "$IBC_INI:/home/ibgateway/ibc.ini:ro" -e "IBC_INI=/home/ibgateway/ibc.ini")
 fi
 
-container_cmd=("$IBKR_APP_LAUNCHER" "${ARGS[@]}")
+container_cmd=("/opt/ibgateway/latest/ibgateway" "${ARGS[@]}")
 
 if [ "$APP_MODE" = "ibc" ]; then
   ibc_install=$(detect_ibc_install)
@@ -407,16 +341,14 @@ if [ "$APP_MODE" = "ibc" ]; then
     "$app_major_version"
   )
 
-  if [ "${IBKR_IS_GATEWAY:-0}" = "1" ]; then
-    container_cmd+=(--gateway)
-  fi
+  container_cmd+=(--gateway)
 
   container_cmd+=(
     --tws-path="$ibc_app_path"
-    --tws-settings-path=/home/tws/Jts
+    --tws-settings-path=/home/ibgateway/Jts
     --ibc-path=/opt/ibc
-    --ibc-ini=/home/tws/ibc.ini
-    --java-path="$IBKR_CONTAINER_APP_HOME/jre/bin"
+    --ibc-ini=/home/ibgateway/ibc.ini
+    --java-path="/opt/ibgateway/latest/jre/bin"
     --on2fatimeout=exit
   )
 

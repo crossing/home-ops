@@ -46,6 +46,6 @@ ENV LANG=en_US.UTF-8
 ENV LANGUAGE=en_US:en
 ENV LC_ALL=en_US.UTF-8
 
-RUN mkdir -p /opt/tws /home/tws/Jts /root/Jts && chmod 777 /opt/tws /home/tws /home/tws/Jts /root /root/Jts
+RUN mkdir -p /opt/ibgateway/latest /home/ibgateway/Jts /root/Jts && chmod 777 /opt/ibgateway/latest /home/ibgateway /home/ibgateway/Jts /root /root/Jts
 
 CMD ["tail", "-f", "/dev/null"]

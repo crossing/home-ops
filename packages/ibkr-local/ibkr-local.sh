@@ -30,9 +30,7 @@ Commands:
   dividends                JSON Flex dividends/cash transactions
   order-preview buy|sell   What-if order preview only; --submit is blocked
   config path|show         Print local/upstream config paths or local config
-  tws                      Launch TWS for a local profile
   gateway                  Launch IB Gateway for a local profile
-  automation-smoke         Prove Xvfb can see/control a Java window
   ibc-config               Render ephemeral IBC config from safe-op secret refs
 
 Examples:
@@ -220,78 +218,18 @@ cmd_config() {
   esac
 }
 
-cmd_tws() {
-  parse_common "$@"
-  set -- "${remaining[@]}"
-  require_config
-
-  local tws_dir jts_dir log_dir
-  tws_dir=$(profile_string "$profile" "twsDir" "$HOME/.local/share/ibkr/$profile/tws")
-  jts_dir=$(profile_string "$profile" "jtsConfigDir" "$HOME/.config/ibkr-local/jts/$profile")
-  log_dir=$(profile_string "$profile" "logDir" "$state_home/ibkr-local/$profile")
-
-  mkdir -p "$tws_dir" "$jts_dir" "$log_dir"
-  TWS_DIR="$tws_dir" CONFIG_DIR="$jts_dir" TWS_LOG_DIR="$log_dir" exec tws "$@"
-}
-
 cmd_gateway() {
   parse_common "$@"
   set -- "${remaining[@]}"
   require_config
 
   local gateway_dir jts_dir log_dir
-  gateway_dir=$(profile_string "$profile" "gatewayDir" "$HOME/.local/share/ibkr/$profile/ibgateway")
-  jts_dir=$(profile_string "$profile" "gatewayJtsConfigDir" "$HOME/.config/ibkr-local/gateway-jts/$profile")
-  log_dir=$(profile_string "$profile" "gatewayLogDir" "$state_home/ibkr-local/gateway/$profile")
+  gateway_dir=$(profile_string "$profile" "gatewayDir" "$HOME/.local/share/ibkr/$profile/gateway")
+  jts_dir=$(profile_string "$profile" "jtsConfigDir" "$HOME/.config/ibkr-local/jts/$profile")
+  log_dir=$(profile_string "$profile" "logDir" "$state_home/ibkr-local/$profile")
 
   mkdir -p "$gateway_dir" "$jts_dir" "$log_dir"
   IBGATEWAY_DIR="$gateway_dir" IBGATEWAY_CONFIG_DIR="$jts_dir" IBGATEWAY_LOG_DIR="$log_dir" exec ibgateway "$@"
-}
-
-cmd_automation_smoke() {
-  local workdir screenshot
-  mkdir -p "$state_home/ibkr-local/smoke"
-  workdir=$(mktemp -d "$state_home/ibkr-local/smoke/java.XXXXXX")
-  screenshot="$workdir/java-smoke.png"
-
-  cat > "$workdir/IbkrSmoke.java" <<'JAVA'
-import javax.swing.JFrame;
-import javax.swing.JLabel;
-import javax.swing.SwingUtilities;
-
-public class IbkrSmoke {
-  public static void main(String[] args) throws Exception {
-    SwingUtilities.invokeAndWait(() -> {
-      JFrame frame = new JFrame("ibkr-local-java-smoke");
-      frame.add(new JLabel("ibkr-local automation smoke"));
-      frame.setSize(420, 160);
-      frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-      frame.setVisible(true);
-    });
-    Thread.sleep(15000);
-  }
-}
-JAVA
-
-  javac "$workdir/IbkrSmoke.java"
-  # shellcheck disable=SC2016
-  xvfb-run -a --server-args="-screen 0 1280x800x24" bash -euo pipefail -c '
-    java -cp "$1" IbkrSmoke &
-    pid=$!
-    trap "kill $pid 2>/dev/null || true" EXIT
-    for _ in $(seq 1 50); do
-      if xdotool search --name ibkr-local-java-smoke >/dev/null 2>&1; then
-        break
-      fi
-      sleep 0.1
-    done
-    window=$(xdotool search --name ibkr-local-java-smoke | head -n 1)
-    test -n "$window"
-    wmctrl -ia "$window"
-    import -window root "$2"
-  ' smoke "$workdir" "$screenshot"
-
-  jq -n --arg screenshot "$screenshot" '{ok: true, screenshot: $screenshot}'
 }
 
 cmd_ibc_config() {
@@ -457,14 +395,8 @@ main() {
       fi
       run_ibkr_json "$profile" "$group" "$account" "$raw" "${order_args[@]}"
       ;;
-    tws)
-      cmd_tws "$@"
-      ;;
     gateway)
       cmd_gateway "$@"
-      ;;
-    automation-smoke)
-      cmd_automation_smoke "$@"
       ;;
     ibc-config)
       cmd_ibc_config "$@"

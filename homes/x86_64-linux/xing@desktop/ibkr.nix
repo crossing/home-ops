@@ -2,7 +2,6 @@
 
 let
   baseConfig = "${config.xdg.configHome}/ibkr-local";
-  baseData = "${config.xdg.dataHome}/ibkr";
   baseState = "${config.xdg.stateHome}/ibkr-local";
 in
 lib.mkIf config.profiles.personal.enable {
@@ -19,10 +18,9 @@ lib.mkIf config.profiles.personal.enable {
 
     profiles = {
       main-paper = {
-        port = 7497;
+        port = 4002;
         clientId = 11;
         mode = "paper";
-        twsDir = "${baseData}/main-paper/tws";
         jtsConfigDir = "${baseConfig}/jts/main-paper";
         logDir = "${baseState}/main-paper";
         accounts = {
@@ -33,10 +31,9 @@ lib.mkIf config.profiles.personal.enable {
       };
 
       main-live = {
-        port = 7496;
+        port = 4001;
         clientId = 12;
         mode = "live";
-        twsDir = "${baseData}/main-live/tws";
         jtsConfigDir = "${baseConfig}/jts/main-live";
         logDir = "${baseState}/main-live";
         accounts = {
@@ -47,20 +44,18 @@ lib.mkIf config.profiles.personal.enable {
       };
 
       pension-paper = {
-        port = 7507;
+        port = 4004;
         clientId = 21;
         mode = "paper";
-        twsDir = "${baseData}/pension-paper/tws";
         jtsConfigDir = "${baseConfig}/jts/pension-paper";
         logDir = "${baseState}/pension-paper";
         accounts.pension = [ ];
       };
 
       pension-live = {
-        port = 7506;
+        port = 4003;
         clientId = 22;
         mode = "live";
-        twsDir = "${baseData}/pension-live/tws";
         jtsConfigDir = "${baseConfig}/jts/pension-live";
         logDir = "${baseState}/pension-live";
         accounts.pension = [ ];
