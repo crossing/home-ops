@@ -286,14 +286,18 @@ let
         || die "1Password account cannot form a scoped session variable"
       session_env="OP_SESSION_$account_session_key"
 
-      if [[ -z "''${!session_env:-}" ]] || ! (
+      if ! (
         OP_ACCOUNT="$op_account" "$op_bin" whoami --account "$op_account" >/dev/null 2>&1
       ); then
         session=$("$op_bin" signin --account "$op_account" --raw)
-        [[ -n "$session" ]] || die "1Password sign-in did not return a session"
-        export "$session_env=$session"
+        # Desktop-app integration can authorize this process tree without
+        # returning a raw OP_SESSION token. Export only when one is present;
+        # in both modes, whoami is the authoritative success check.
+        if [[ -n "$session" ]]; then
+          export "$session_env=$session"
+        fi
         OP_ACCOUNT="$op_account" "$op_bin" whoami --account "$op_account" >/dev/null 2>&1 \
-          || die "new 1Password session is invalid"
+          || die "1Password sign-in did not authorize this terminal"
       fi
 
       if [[ -n "$session" ]]; then
