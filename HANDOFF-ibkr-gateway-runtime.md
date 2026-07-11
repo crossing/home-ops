@@ -12,7 +12,7 @@ Persistent per-profile paths are:
 
 The temporary IBC configuration is `$XDG_RUNTIME_DIR/ibkr-local/PROFILE/ibc.ini`. Its parent directories are private and the file mode is 0600. `ExecStopPost` removes the complete per-profile runtime directory.
 
-The current Home Manager profile enables only `main-live`: live API port 4001, client ID 12, headless Xvfb display, and weekday authenticated restart at 11:45 PM. The configured but currently service-disabled profiles are `main-paper` on 4002, `pension-live` on 4003, and `pension-paper` on 4004.
+The current Home Manager profile enables only `main-live`: live API port 4001, client ID 12, headless Xvfb display, and weekday authenticated restart at 11:45 PM. The configured but currently service-disabled profiles are `main-paper` on 4002, `pension-live` on 4003, and `pension-paper` on 4004. Generated IBC configuration applies each profile port through IBC 3.24.1's `OverrideTwsApiPort`, keeping the Gateway listener and client configuration aligned when another profile is enabled.
 
 ## Start and reauthenticate
 
@@ -26,7 +26,7 @@ The helper requires an active `graphical-session.target`. It takes a nonblocking
 
 The authenticator step is deliberately manual. If prompted, complete the challenge in the Gateway UI. There is no command in this workflow that retrieves an authenticator code.
 
-The helper stops an existing service and refuses to proceed if it remains active. It installs the runtime config, starts the service, and transfers ownership of that config only after systemd confirms the service is active. On a failed handoff, cleanup removes the runtime credentials unless a valid running service owns them.
+The helper stops an existing service and refuses to proceed if it remains active. It installs the runtime config, starts the service, and transfers ownership of that config only after systemd confirms the service is active. On a failed handoff, cleanup removes the runtime credentials unless a valid running service owns them. `ExistingSessionDetectedAction=secondary` prevents the new Gateway login from overriding another trading session: IBC 3.24.1 documents that the existing session continues and the newly started session terminates.
 
 ## Observe and stop
 

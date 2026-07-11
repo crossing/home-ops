@@ -22,7 +22,7 @@ The configured profiles are:
 | `pension-live` | live | 4003 | not enabled |
 | `pension-paper` | paper | 4004 | not enabled |
 
-Ports 4001 and 4002 are the normal live and paper defaults. The pension profiles use distinct ports so that future simultaneous instances cannot collide. Only `main-live` currently has credentials and a generated Gateway service/helper.
+Ports 4001 and 4002 are the normal live and paper defaults. Each generated IBC config sets `OverrideTwsApiPort` to its profile port, so the pension profiles' distinct 4003/4004 client settings also become the corresponding Gateway listener settings when those services are enabled. Only `main-live` currently has credentials and a generated Gateway service/helper.
 
 ## Normal operation
 
@@ -32,7 +32,7 @@ After activating the Home Manager configuration and while the graphical user ses
 ibkr-gateway-reauth-main-live
 ```
 
-Unlock or sign in to 1Password if prompted. When Gateway presents its authenticator challenge, approve or enter it manually in the Gateway UI. The helper serializes each profile's start operation, stops an existing instance, creates the ephemeral credential file, starts the service, and confirms that it became active.
+Unlock or sign in to 1Password if prompted. When Gateway presents its authenticator challenge, approve or enter it manually in the Gateway UI. The helper serializes each profile's start operation, stops an existing instance, creates the ephemeral credential file, starts the service, and confirms that it became active. IBC is configured with `ExistingSessionDetectedAction=secondary`: under IBC 3.24.1 semantics, if another trading session already exists, that existing session continues and this newly started Gateway session terminates rather than displacing it.
 
 Inspect or stop the service with:
 

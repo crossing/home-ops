@@ -306,6 +306,7 @@ let
         --username-ref ${lib.escapeShellArg usernameRef}
         --password-ref ${lib.escapeShellArg passwordRef}
         --trading-mode ${lib.escapeShellArg profile.mode}
+        --api-port ${toString profile.port}
         --auto-restart-time ${lib.escapeShellArg gatewayProfile.autoRestartTime}
       )
       if [[ ${if gatewayProfile.readOnlyLogin then "1" else "0"} == 1 ]]; then
@@ -350,6 +351,8 @@ let
 
       ${pkgs.gnugrep}/bin/grep -qx 'ReadOnlyApi=yes' "$rendered_config" \
         || die "rendered IBC config is missing ReadOnlyApi=yes"
+      ${pkgs.gnugrep}/bin/grep -Fxq ${lib.escapeShellArg "OverrideTwsApiPort=${toString profile.port}"} "$rendered_config" \
+        || die "rendered IBC config does not override Gateway's API listener to the profile port"
 
       if [[ ${if gatewayProfile.readOnlyLogin then "1" else "0"} == 1 ]]; then
         ${pkgs.gnugrep}/bin/grep -qx 'ReadOnlyLogin=yes' "$rendered_config" \
@@ -366,7 +369,7 @@ let
       ${pkgs.gnugrep}/bin/grep -qx 'SecondFactorAuthenticationExitInterval=60' "$rendered_config" \
         || die "rendered IBC config is missing the second-factor exit interval"
       ${pkgs.gnugrep}/bin/grep -qx 'ExistingSessionDetectedAction=secondary' "$rendered_config" \
-        || die "rendered IBC config does not fail closed on an existing session"
+        || die "rendered IBC config would allow the new session to displace an existing session"
 
       ${pkgs.systemd}/bin/systemctl --user stop ${lib.escapeShellArg serviceName} \
         || die "failed to stop the existing Gateway service"

@@ -234,7 +234,7 @@ cmd_gateway() {
 
 cmd_ibc_config() {
   require_config
-  local profile="" username_ref="" password_ref="" username_item="" username_field="" username_vault="" password_item="" password_field="" password_vault="" trading_mode="" second_factor_device="" auto_restart_time="" read_only_login=0
+  local profile="" username_ref="" password_ref="" username_item="" username_field="" username_vault="" password_item="" password_field="" password_vault="" trading_mode="" api_port="" second_factor_device="" auto_restart_time="" read_only_login=0
   while (($#)); do
     case "$1" in
       -p|--profile)
@@ -277,6 +277,10 @@ cmd_ibc_config() {
         trading_mode=$2
         shift 2
         ;;
+      --api-port)
+        api_port=$2
+        shift 2
+        ;;
       --second-factor-device)
         second_factor_device=$2
         shift 2
@@ -311,6 +315,9 @@ cmd_ibc_config() {
 
   local runtime_parent runtime_dir config_path username password mode
   mode=${trading_mode:-$(profile_string "$profile" "mode" "paper")}
+  api_port=${api_port:-$(profile_string "$profile" "port" "")}
+  [[ "$api_port" =~ ^[0-9]+$ && "$api_port" -ge 1 && "$api_port" -le 65535 ]] \
+    || die "profile API port must be an integer from 1 to 65535"
   runtime_parent=${IBKR_IBC_RUNTIME_PARENT:-${XDG_RUNTIME_DIR:-/tmp}}
   [[ -d "$runtime_parent" ]] || die "IBC runtime parent does not exist: $runtime_parent"
 
@@ -325,6 +332,7 @@ cmd_ibc_config() {
       || die "--auto-restart-time must use HH:MM AM/PM format"
   fi
   runtime_dir=$(mktemp -d "$runtime_parent/ibkr-ibc.XXXXXX")
+  trap '[[ -z "${runtime_dir:-}" ]] || rm -rf -- "$runtime_dir"' EXIT
   chmod 700 "$runtime_dir"
   config_path="$runtime_dir/ibc.ini"
   umask 077
@@ -333,6 +341,7 @@ cmd_ibc_config() {
     printf 'IbPassword=%s\n' "$password"
     printf 'TradingMode=%s\n' "$mode"
     printf 'ReadOnlyApi=yes\n'
+    printf 'OverrideTwsApiPort=%s\n' "$api_port"
     if [[ "$read_only_login" == "1" ]]; then
       printf 'ReadOnlyLogin=yes\n'
     fi
@@ -353,6 +362,8 @@ cmd_ibc_config() {
 
   jq -n --arg config "$config_path" --arg runtime_dir "$runtime_dir" --arg read_only_login "$read_only_login" \
     '{config: $config, runtime_dir: $runtime_dir, read_only_login: ($read_only_login == "1"), note: "ephemeral IBC config written with mode 0600; delete runtime_dir after use"}'
+  runtime_dir=""
+  trap - EXIT
 }
 
 main() {
