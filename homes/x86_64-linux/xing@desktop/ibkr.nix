@@ -67,6 +67,7 @@ lib.mkIf config.profiles.personal.enable {
       profiles.main-live = {
         usernameRef = "op://3eyhyuvr6x6hvvajthxk5cn37u/3drrbjgoksyc3tuu4yxyvshjvq/username";
         passwordRef = "op://3eyhyuvr6x6hvvajthxk5cn37u/3drrbjgoksyc3tuu4yxyvshjvq/password";
+        displayMode = "x11";
         readOnlyLogin = false;
         secondFactorDevice = "IB Key";
       };
