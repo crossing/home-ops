@@ -375,9 +375,9 @@ let
       fi
       ${pkgs.coreutils}/bin/mkdir -p "$target_dir"
       ${pkgs.coreutils}/bin/chmod 700 "$target_dir"
+      owns_target_config=1
       ${pkgs.coreutils}/bin/rm -f "$target_dir/ibc.ini"
       ${pkgs.coreutils}/bin/install -m 0600 "$rendered_config" "$target_dir/ibc.ini"
-      owns_target_config=1
       ${pkgs.coreutils}/bin/rm -rf "$render_parent"
       render_parent=""
 
