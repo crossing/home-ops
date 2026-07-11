@@ -277,13 +277,14 @@ let
       ${pkgs.coreutils}/bin/chmod 700 "$render_parent"
 
       op_account=${lib.escapeShellArg gatewayProfile.opAccount}
-      account_json=$("$op_bin" account get --account "$op_account" --format=json) \
-        || die "could not read 1Password account metadata"
-      account_shorthand=$(printf '%s\n' "$account_json" | ${pkgs.jq}/bin/jq -er '.shorthand') \
-        || die "1Password account metadata has no shorthand"
-      [[ "$account_shorthand" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]] \
-        || die "1Password account shorthand cannot form a scoped session variable"
-      session_env="OP_SESSION_$account_shorthand"
+      # op 2.34 returns only limited account metadata while signed out, so a
+      # shorthand lookup would itself require the session we are creating.
+      # The CLI's default account shorthand is the first DNS label ("my" for
+      # my.1password.com), which is also the OP_SESSION_* suffix used by signin.
+      account_session_key="''${op_account%%.*}"
+      [[ "$account_session_key" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]] \
+        || die "1Password account cannot form a scoped session variable"
+      session_env="OP_SESSION_$account_session_key"
 
       if [[ -z "''${!session_env:-}" ]] || ! (
         OP_ACCOUNT="$op_account" "$op_bin" whoami --account "$op_account" >/dev/null 2>&1
