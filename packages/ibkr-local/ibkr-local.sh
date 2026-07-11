@@ -234,7 +234,7 @@ cmd_gateway() {
 
 cmd_ibc_config() {
   require_config
-  local profile="" username_ref="" password_ref="" username_item="" username_field="" username_vault="" password_item="" password_field="" password_vault="" trading_mode="" second_factor_device="" read_only_login=0
+  local profile="" username_ref="" password_ref="" username_item="" username_field="" username_vault="" password_item="" password_field="" password_vault="" trading_mode="" second_factor_device="" auto_restart_time="" read_only_login=0
   while (($#)); do
     case "$1" in
       -p|--profile)
@@ -281,6 +281,10 @@ cmd_ibc_config() {
         second_factor_device=$2
         shift 2
         ;;
+      --auto-restart-time)
+        auto_restart_time=$2
+        shift 2
+        ;;
       --read-only-login)
         read_only_login=1
         shift
@@ -312,6 +316,14 @@ cmd_ibc_config() {
 
   username=$(safe-op read "$username_ref" --no-newline)
   password=$(safe-op read "$password_ref" --no-newline)
+  [[ "$username" != *$'\n'* && "$username" != *$'\r'* ]] || die "username contains a line break"
+  [[ "$password" != *$'\n'* && "$password" != *$'\r'* ]] || die "password contains a line break"
+  [[ "$second_factor_device" != *$'\n'* && "$second_factor_device" != *$'\r'* ]] \
+    || die "second-factor device contains a line break"
+  if [[ -n "$auto_restart_time" ]]; then
+    [[ "$auto_restart_time" =~ ^(0[1-9]|1[0-2]):[0-5][0-9]\ (AM|PM)$ ]] \
+      || die "--auto-restart-time must use HH:MM AM/PM format"
+  fi
   runtime_dir=$(mktemp -d "$runtime_parent/ibkr-ibc.XXXXXX")
   chmod 700 "$runtime_dir"
   config_path="$runtime_dir/ibc.ini"
@@ -327,6 +339,12 @@ cmd_ibc_config() {
     if [[ -n "$second_factor_device" ]]; then
       printf 'SecondFactorDevice=%s\n' "$second_factor_device"
     fi
+    if [[ -n "$auto_restart_time" ]]; then
+      printf 'AutoRestartTime=%s\n' "$auto_restart_time"
+    fi
+    printf 'ReloginAfterSecondFactorAuthenticationTimeout=no\n'
+    printf 'SecondFactorAuthenticationExitInterval=60\n'
+    printf 'ExistingSessionDetectedAction=secondary\n'
     printf 'AcceptIncomingConnectionAction=accept\n'
   } > "$config_path"
   username=""

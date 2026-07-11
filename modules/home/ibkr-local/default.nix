@@ -103,6 +103,12 @@ let
         description = "Exact IBC SecondFactorDevice value to choose when multiple second factors are available.";
       };
 
+      autoRestartTime = lib.mkOption {
+        type = lib.types.strMatching "(0[1-9]|1[0-2]):[0-5][0-9] (AM|PM)";
+        default = "11:45 PM";
+        description = "Local weekday IBC authenticated auto-restart time in HH:MM AM/PM form.";
+      };
+
       displayMode = lib.mkOption {
         type = lib.types.enum [ "xvfb" "x11" "visible" ];
         default = "xvfb";
@@ -256,33 +262,30 @@ let
 
       ${pkgs.coreutils}/bin/mkdir -p "$runtime_base" "$target_dir"
       ${pkgs.coreutils}/bin/chmod 700 "$runtime_base" "$target_dir"
+      exec 9>"$runtime_base/${name}.reauth.lock"
+      ${pkgs.util-linux}/bin/flock -n 9 \
+        || die "another start/reauth operation is already active for this profile"
       render_parent=$(${pkgs.coreutils}/bin/mktemp -d "$runtime_base/${name}.reauth.XXXXXX")
       ${pkgs.coreutils}/bin/chmod 700 "$render_parent"
 
       op_account=${lib.escapeShellArg gatewayProfile.opAccount}
-      for candidate in OP_SESSION_my OP_SESSION_my_1password_com OP_SESSION_my_1password; do
-        if [[ -n "''${!candidate:-}" ]] && (
-          OP_ACCOUNT="$op_account" "$op_bin" whoami --account "$op_account" >/dev/null 2>&1
-        ); then
-          session_env="$candidate"
-          break
-        fi
-      done
+      account_json=$("$op_bin" account get --account "$op_account" --format=json) \
+        || die "could not read 1Password account metadata"
+      account_shorthand=$(printf '%s\n' "$account_json" | ${pkgs.jq}/bin/jq -er '.shorthand') \
+        || die "1Password account metadata has no shorthand"
+      [[ "$account_shorthand" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]] \
+        || die "1Password account shorthand cannot form a scoped session variable"
+      session_env="OP_SESSION_$account_shorthand"
 
-      if [[ -z "$session_env" ]]; then
+      if [[ -z "''${!session_env:-}" ]] || ! (
+        OP_ACCOUNT="$op_account" "$op_bin" whoami --account "$op_account" >/dev/null 2>&1
+      ); then
         session=$("$op_bin" signin --account "$op_account" --raw)
-
-        for candidate in OP_SESSION_my OP_SESSION_my_1password_com OP_SESSION_my_1password; do
-          if (
-            export "$candidate=$session"
-            OP_ACCOUNT="$op_account" "$op_bin" whoami --account "$op_account" >/dev/null 2>&1
-          ); then
-            session_env="$candidate"
-            break
-          fi
-        done
+        [[ -n "$session" ]] || die "1Password sign-in did not return a session"
+        export "$session_env=$session"
+        OP_ACCOUNT="$op_account" "$op_bin" whoami --account "$op_account" >/dev/null 2>&1 \
+          || die "new 1Password session is invalid"
       fi
-      [[ -n "$session_env" ]] || die "could not find a valid OP_SESSION_* environment name"
 
       if [[ -n "$session" ]]; then
         export "$session_env=$session"
@@ -295,6 +298,7 @@ let
         --username-ref ${lib.escapeShellArg usernameRef}
         --password-ref ${lib.escapeShellArg passwordRef}
         --trading-mode ${lib.escapeShellArg profile.mode}
+        --auto-restart-time ${lib.escapeShellArg gatewayProfile.autoRestartTime}
       )
       if [[ ${if gatewayProfile.readOnlyLogin then "1" else "0"} == 1 ]]; then
         args+=(--read-only-login)
@@ -302,7 +306,6 @@ let
       if [[ -n ${lib.escapeShellArg secondFactorDevice} ]]; then
         args+=(--second-factor-device ${lib.escapeShellArg secondFactorDevice})
       fi
-
       render_json=$(
         IBKR_LOCAL_PROFILES=${lib.escapeShellArg profilesJsonFile} \
         IBKR_IBC_RUNTIME_PARENT="$render_parent" \
@@ -348,14 +351,25 @@ let
         ${pkgs.gnugrep}/bin/grep -Fxq ${lib.escapeShellArg "SecondFactorDevice=${secondFactorDevice}"} "$rendered_config" \
           || die "rendered IBC config is missing the configured SecondFactorDevice"
       fi
+      ${pkgs.gnugrep}/bin/grep -Fxq ${lib.escapeShellArg "AutoRestartTime=${gatewayProfile.autoRestartTime}"} "$rendered_config" \
+        || die "rendered IBC config is missing the configured AutoRestartTime"
+      ${pkgs.gnugrep}/bin/grep -qx 'ReloginAfterSecondFactorAuthenticationTimeout=no' "$rendered_config" \
+        || die "rendered IBC config permits unbounded second-factor relogin"
+      ${pkgs.gnugrep}/bin/grep -qx 'SecondFactorAuthenticationExitInterval=60' "$rendered_config" \
+        || die "rendered IBC config is missing the second-factor exit interval"
+      ${pkgs.gnugrep}/bin/grep -qx 'ExistingSessionDetectedAction=secondary' "$rendered_config" \
+        || die "rendered IBC config does not fail closed on an existing session"
 
       ${pkgs.systemd}/bin/systemctl --user stop ${lib.escapeShellArg serviceName} || true
+      ${pkgs.coreutils}/bin/mkdir -p "$target_dir"
+      ${pkgs.coreutils}/bin/chmod 700 "$target_dir"
       ${pkgs.coreutils}/bin/rm -f "$target_dir/ibc.ini"
       ${pkgs.coreutils}/bin/install -m 0600 "$rendered_config" "$target_dir/ibc.ini"
       ${pkgs.coreutils}/bin/rm -rf "$render_parent"
       render_parent=""
 
       ${pkgs.systemd}/bin/systemctl --user start ${lib.escapeShellArg serviceName}
+      echo "IB Gateway ${name} started; complete any authenticator challenge manually in the Gateway UI." >&2
     '';
 
   gatewayReauthScripts = lib.mapAttrsToList mkGatewayReauthScript enabledExistingGatewayProfiles;
