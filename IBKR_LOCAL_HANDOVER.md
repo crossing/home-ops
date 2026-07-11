@@ -1,5 +1,11 @@
 # Local IBKR integration handover
 
+## Verified live state
+
+On 2026-07-11, `main-live` completed real Gateway authentication and API verification. IBC applied port 4001 and `ReadOnlyApi=no`; the constrained CLI returned healthy connectivity for three accounts, 33 position rows, 8 balance-summary rows, zero execution rows, and a successful AAPL LMT what-if marked `preview_only=true`. Submit remained blocked and cancel/modify remained unavailable. The service remained active with its credential file at mode 0600 and no 1Password authentication variables in its environment.
+
+The minimized Java window may retain a stale login-screen image despite the authenticated API state. Do not close it: closing the Gateway window stops IBC and the user service. Use `ibkr-local connect --profile main-live` and the service journal as the health source of truth.
+
 This branch provides a local-only Interactive Brokers integration built around IB Gateway, IBC, `ibkr-cli`, and the constrained `ibkr-local` interface. There is no workstation runtime or package in this integration.
 
 ## Architecture and safety boundary

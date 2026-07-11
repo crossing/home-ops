@@ -1,5 +1,13 @@
 # IB Gateway runtime handoff
 
+## Live verification: 2026-07-11
+
+`main-live` is verified end to end. The app-integrated 1Password CLI authorized the helper without a reusable raw token, IBC filled username/password, the user completed the IBKR-offered second-factor flow, and IBC logged `Login has completed`. Gateway listens on port 4001 with API write access enabled solely to permit constrained what-if previews.
+
+Sanitized checks passed: TCP/API connectivity across three managed accounts; 33 position rows; 8 balance-summary rows; zero execution rows; and an AAPL LMT what-if marked `preview_only=true` with status `PreSubmitted`. `--submit` remains blocked, while cancel and modify are not exposed. The service stayed active after preview, its credential file is mode 0600, and no `OP_SESSION_*` or `OP_ACCOUNT` reached its environment.
+
+The minimized Java window can retain a stale login-screen image even though the API is authenticated. Trust `Login has completed`, port 4001, and `ibkr-local connect`; do not close the window because closing it cleanly terminates Gateway. The service was left running after verification.
+
 ## Runtime layout
 
 This is a Gateway-only runtime. `packages/ibgateway` contains the Podman image definition, installer wrapper, and IBC package. Home Manager generates `ibkr-gateway-reauth-PROFILE` and `ibkr-gateway-PROFILE.service` for each enabled credentialed profile.
@@ -12,7 +20,7 @@ Persistent per-profile paths are:
 
 The temporary IBC configuration is `$XDG_RUNTIME_DIR/ibkr-local/PROFILE/ibc.ini`. Its parent directories are private and the file mode is 0600. `ExecStopPost` removes the complete per-profile runtime directory.
 
-The current Home Manager profile enables only `main-live`: live API port 4001, client ID 12, headless Xvfb display, and weekday authenticated restart at 11:45 PM. The configured but currently service-disabled profiles are `main-paper` on 4002, `pension-live` on 4003, and `pension-paper` on 4004. Generated IBC configuration applies each profile port through IBC 3.24.1's `OverrideTwsApiPort`, keeping the Gateway listener and client configuration aligned when another profile is enabled.
+The current Home Manager profile enables only `main-live`: live API port 4001, client ID 12, X11 display for the manual second-factor flow, and weekday authenticated restart at 11:45 PM. The configured but currently service-disabled profiles are `main-paper` on 4002, `pension-live` on 4003, and `pension-paper` on 4004. Generated IBC configuration applies each profile port through IBC 3.24.1's `OverrideTwsApiPort`, keeping the Gateway listener and client configuration aligned when another profile is enabled.
 
 ## Start and reauthenticate
 
