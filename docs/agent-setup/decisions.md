@@ -30,3 +30,33 @@ Bootstrap and weekly review derive their targets from the agents installed by
 the active Home Manager profile. Shared personal skills and each installed
 agent's native roots are reviewed; absent agents are skipped. Exactly one agent
 owns the weekly schedule to prevent duplicate maintenance runs.
+
+## 2026-07-12: Codex workflows use true names and native orchestration
+
+Codex's general workflow catalogue is intentionally small and progressively
+loaded. Skill names and descriptions must match their bodies. Context control,
+debugging, incremental edits, state transfer, parallel routing and the
+goal-to-build cycle remain separate only where their triggers differ.
+
+The Codex orchestration skills may use native goal, plan and subagent tools when
+the current surface exposes them. They must not depend on absent `superpowers:*`
+skills, generic legacy subagent syntax, recursive fan-out, or per-dispatch model
+selection that the active tool surface cannot express. Read-heavy independent
+work may run in parallel; shared live state and overlapping writes remain
+sequential.
+
+## 2026-07-12: larger coding work uses the Superpowers lane
+
+`structured-build-cycle` remains the outer owner for the goal, authorization
+boundary, route selection and final acceptance. Larger coding work delegates
+design, detailed planning, implementation orchestration, TDD, review and branch
+completion to the installed Superpowers plugin. The native plan tracks that as
+one high-level unit and must not duplicate Superpowers' plan or dispatch loops.
+
+The full lane is selected for cross-component behavior, API/schema/data-flow or
+architectural changes, multiple independently verifiable coding tasks, broad
+refactors/migrations, or an explicit request for the full Superpowers
+development workflow. Localized fixes and
+non-coding Nix, CI, packaging, documentation, skill/plugin and operational work
+keep the compact native route, though individual Superpowers debugging, TDD or
+verification skills may still apply.
