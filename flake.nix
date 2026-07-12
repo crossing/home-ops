@@ -64,7 +64,7 @@
     };
 
     safe-cli = {
-      url = "path:/home/xing/works/home/safe-cli";
+      url = "github:crossing/safe-cli";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
