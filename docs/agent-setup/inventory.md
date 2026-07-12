@@ -65,7 +65,7 @@ baseline contains 7 `SKILL.md` files.
 The two personal Codex-owned workflow hashes are:
 
 - `parallel-agent-routing`: `a23f11f4e5aa0a50c70b8785b21063efca648a932dfd77f84373925a7d78c8f0`
-- `structured-build-cycle`: `8e9111e49150fd1620d526910bffbb20c219796dd842388794759f2034481c2c`
+- `structured-build-cycle`: `1e7f67ecc96285264b78ee0be7cc532e95d02d93b1ae11f81188a0715aa2468d`
 
 ## Hermes skills
 
@@ -95,10 +95,18 @@ The explicitly enabled plugin set in `~/.codex/config.toml` is:
 - `presentations@openai-primary-runtime`
 - `template-creator@openai-primary-runtime`
 - `chrome@openai-bundled`
+- `superpowers@superpowers-dev`
 
 This list, not cache presence, is the reconstruction target. Additional curated
 connector plugins visible in a workspace are managed by Codex/plugin state and
 may be reinstalled separately when their connected capabilities are wanted.
+
+`superpowers-dev` is the Codex marketplace name declared by
+`https://github.com/obra/superpowers.git`. It currently tracks `main` at
+revision `d884ae04edebef577e82ff7c4e143debd0bbec99` and installs Superpowers
+6.1.1. The official implicit `openai-curated` package at 5.1.3 installed but did
+not expose its skills under Codex CLI 0.144.1, so it was removed after a failed
+loader probe.
 
 ## Concrete plugin cache versions
 
@@ -127,8 +135,9 @@ may be reinstalled separately when their connected capabilities are wanted.
 | `openai-primary-runtime/presentations/26.709.11516` | `presentations` |
 | `openai-primary-runtime/spreadsheets/26.709.11516` | `excel-live-control`, `spreadsheets` |
 | `openai-primary-runtime/template-creator/26.709.11516` | `template-creator` |
+| `superpowers-dev/superpowers/6.1.1` | `brainstorming`, `dispatching-parallel-agents`, `executing-plans`, `finishing-a-development-branch`, `receiving-code-review`, `requesting-code-review`, `subagent-driven-development`, `systematic-debugging`, `test-driven-development`, `using-git-worktrees`, `using-superpowers`, `verification-before-completion`, `writing-plans`, `writing-skills` |
 
-Baseline: 23 concrete plugin versions and 91 cached `SKILL.md` files. The
+Current baseline: 24 concrete plugin versions and 105 cached `SKILL.md` files. The
 browser and Chrome caches each retain an older and a current concrete version.
 
 ## Reproducible checks
