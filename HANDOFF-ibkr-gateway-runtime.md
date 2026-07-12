@@ -1,5 +1,45 @@
 # IB Gateway runtime handoff
 
+## Paused dual-live continuation: 2026-07-12
+
+Branch: `feature/ibkr-local-integration`. The dual-instance work is committed through `7322793`:
+
+- `50fbed0` adds the tested, idempotent `ibkr-gateway-ensure-live` coordinator.
+- `7322793` enables `pension-live` beside `main-live` using the existing modular service/reauth generator.
+- Design and implementation plan are committed as `f93c085` and `ca98046` under `docs/superpowers/`.
+
+`pension-live` uses port 4003, client ID 22, a deterministic `ibkr-gateway-pension-live` container, and the 1Password Login item identified by username `crossing2pension`. Only stable `op://` item references are committed. The aggregate command checks `main-live` then `pension-live`, leaves active services untouched, and invokes only the missing profile's existing reauthentication helper. A second invocation against two active services performed no reauthentication.
+
+### Verification completed
+
+- The coordinator shell test passed all four cases: both active, pension missing, both missing, and one helper failing while the other still starts.
+- Both Gateway profiles evaluate with `Restart=no`; `gateway.ensureProfiles` evaluates to `["main-live","pension-live"]`.
+- `ibgateway`, `ibkr-local`, and the full `xing@desktop` Home Manager activation package built successfully.
+- The coordinator from the built Home Manager generation passed the same fake-systemd test.
+- Shell syntax, `git diff --check`, and the existing fail-closed `order-preview ... --submit` check passed.
+- Live orchestration skipped the already-active `main-live` instance. Its invocation ID remained `8322c9a7c37e4f9f94ed9e1b36a7d85f` throughout.
+- The pension helper filled the verified `crossing2pension` username/password, reached `Second Factor Authentication`, and offered phone-notification authentication. The screen reported `Notification sent`; two local resend attempts did not produce a phone challenge.
+
+### Pause state and cleanup
+
+The incomplete pension instance was stopped cleanly. `ibkr-gateway-pension-live.service` is inactive, its private runtime directory is absent, port 4003 is closed, and no pension Gateway container remains. `main-live` remains active on its original invocation. The persistent 1Password shell was exited.
+
+Normal Home Manager activation was attempted only after the full build passed, but stopped at the pre-existing manually linked `~/.config/systemd/user/ibkr-gateway-main-live.service` conflict before systemd reload. For the runtime proof, only the new pension unit was linked from the verified generation and `systemctl --user daemon-reload` was run. The aggregate and pension reauth commands are present in this verified generation but are not yet installed into the normal Home Manager path:
+
+```text
+/nix/store/nm807cwvlgiddrmqhl8r0vj6wwvmnivw-home-manager-generation
+```
+
+### Resume after checking the pension device
+
+1. Confirm that `crossing2pension` has a working IBKR Mobile/IB Key device and that phone notifications or in-app pending authentication are enabled.
+2. Resolve the Home Manager link conflict or continue temporarily with the verified generation's `home-path/bin` prepended to `PATH`.
+3. In one persistent terminal shell, run `op signin --account my.1password.com`, verify `op whoami`, then run `ibkr-gateway-ensure-live`.
+4. Confirm output says `main-live: already active` and starts only `pension-live`; approve the pension IB Key challenge.
+5. Require `Login has completed`, port 4003 listening, and `ibkr-local connect --profile pension-live` succeeding before treating the pension instance as authenticated.
+6. Run the aggregate command again and confirm both profiles report `already active` with unchanged invocation IDs.
+7. Perform only sanitized row-count checks for pension positions, balances, and executions; do not print account IDs or financial rows.
+
 ## Completed runtime proof: 2026-07-12
 
 Branch: `feature/ibkr-local-integration`. Last verified code commit before this continuation: `d0d4100`. The completed continuation changes are in:
