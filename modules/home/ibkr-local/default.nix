@@ -413,6 +413,13 @@ let
 
   gatewayReauthScripts = lib.mapAttrsToList mkGatewayReauthScript enabledExistingGatewayProfiles;
 
+  gatewayEnsureScript = lib.optional (cfg.gateway.ensureProfiles != [ ]) (
+    pkgs.writeShellScriptBin "ibkr-gateway-ensure-live" ''
+      exec ${pkgs.bash}/bin/bash ${./ibkr-gateway-ensure.sh} \
+        ${lib.escapeShellArgs cfg.gateway.ensureProfiles}
+    ''
+  );
+
   mkGatewayService = name: gatewayProfile:
     let
       runScript = mkGatewayRunScript name gatewayProfile;
@@ -498,6 +505,12 @@ in
         default = { };
         description = "IB Gateway user services keyed by programs.ibkrLocal.profiles name.";
       };
+
+      ensureProfiles = lib.mkOption {
+        type = lib.types.listOf lib.types.str;
+        default = [ ];
+        description = "Ordered Gateway profiles managed by ibkr-gateway-ensure-live.";
+      };
     };
   };
 
@@ -515,6 +528,12 @@ in
           message = "programs.ibkrLocal.gateway.profiles.${name} must also exist in programs.ibkrLocal.profiles.";
         })
         enabledGatewayProfiles)
+      ++ (map
+        (name: {
+          assertion = builtins.hasAttr name enabledExistingGatewayProfiles;
+          message = "programs.ibkrLocal.gateway.ensureProfiles entry ${name} must identify an enabled Gateway profile.";
+        })
+        cfg.gateway.ensureProfiles)
       ++ (lib.concatLists (lib.mapAttrsToList
         (name: gatewayProfile: [
           {
@@ -528,7 +547,7 @@ in
         ])
         enabledGatewayProfiles));
 
-    home.packages = [ cfg.package ] ++ gatewayReauthScripts;
+    home.packages = [ cfg.package ] ++ gatewayReauthScripts ++ gatewayEnsureScript;
 
     xdg.configFile."ibkr-local/profiles.json".source = profilesJsonFile;
     xdg.configFile."ibkr-local/ibkr-cli/config.toml".text = ibkrCliConfig;

@@ -64,13 +64,25 @@ lib.mkIf config.profiles.personal.enable {
 
     gateway = {
       enable = true;
-      profiles.main-live = {
-        usernameRef = "op://3eyhyuvr6x6hvvajthxk5cn37u/3drrbjgoksyc3tuu4yxyvshjvq/username";
-        passwordRef = "op://3eyhyuvr6x6hvvajthxk5cn37u/3drrbjgoksyc3tuu4yxyvshjvq/password";
-        displayMode = "xvfb";
-        readOnlyApi = false;
-        readOnlyLogin = false;
-        secondFactorDevice = "IB Key";
+      ensureProfiles = [ "main-live" "pension-live" ];
+      profiles = {
+        main-live = {
+          usernameRef = "op://3eyhyuvr6x6hvvajthxk5cn37u/3drrbjgoksyc3tuu4yxyvshjvq/username";
+          passwordRef = "op://3eyhyuvr6x6hvvajthxk5cn37u/3drrbjgoksyc3tuu4yxyvshjvq/password";
+          displayMode = "xvfb";
+          readOnlyApi = false;
+          readOnlyLogin = false;
+          secondFactorDevice = "IB Key";
+        };
+
+        pension-live = {
+          usernameRef = "op://3eyhyuvr6x6hvvajthxk5cn37u/6jya6jb3uvmvbweziwn6xhcloa/username";
+          passwordRef = "op://3eyhyuvr6x6hvvajthxk5cn37u/6jya6jb3uvmvbweziwn6xhcloa/password";
+          displayMode = "xvfb";
+          readOnlyApi = false;
+          readOnlyLogin = false;
+          secondFactorDevice = "IB Key";
+        };
       };
     };
   };
