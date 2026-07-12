@@ -10,7 +10,7 @@ Home Manager owns the stable runtime needed by agents and mutable skills.
 | Agent Browser CLI | `modules/home/personal/ai/default.nix` |
 | RTK | `modules/home/personal/ai/default.nix` |
 | Node.js, ripgrep and jq | `modules/home/personal/home.nix` |
-| `safe-op` | local `safe-cli` flake input via the personal home module |
+| `safe-op` | external `github:crossing/safe-cli` flake input via the personal home module |
 | Git, Git LFS and libsecret integration | `modules/home/personal/developer/git.nix` |
 
 The `safe-cli` flake input is fetched directly from
