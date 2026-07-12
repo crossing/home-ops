@@ -1,14 +1,14 @@
 # IB Gateway runtime handoff
 
-## Pause state: 2026-07-12
+## Completed runtime proof: 2026-07-12
 
-Branch: `feature/ibkr-local-integration`. Last verified code commit before this handoff: `d0d4100`. The worktree intentionally has uncommitted continuation changes in:
+Branch: `feature/ibkr-local-integration`. Last verified code commit before this continuation: `d0d4100`. The completed continuation changes are in:
 
 - `modules/home/ibkr-local/default.nix`
 - `packages/ibgateway/Dockerfile`
 - `packages/ibgateway/wrapper.sh`
 
-Current runtime is clean: `ibkr-gateway-main-live.service` is inactive, no IB Gateway container/process is running, and no stalled `op signin` or reauth helper remains. The current Home Manager generation includes the latest uncommitted changes and builds successfully.
+Current runtime is intentionally live: `ibkr-gateway-main-live.service` is active, exactly one named Gateway container is running, and port 4001 is listening. The latest Home Manager activation package builds successfully.
 
 ### What was proved today
 
@@ -18,26 +18,15 @@ Current runtime is clean: `ibkr-gateway-main-live.service` is inactive, no IB Ga
 - Container-local `xdotool`/`scrot` confirmed that the authenticated main frame reported the API server connected. They remain in the image for local Java UI diagnostics.
 - IBC `ENABLEAPI` is invalid for IB Gateway. The temporary command-server experiment was removed and is not present in the worktree.
 
-### Work in progress
+### Final cleanup and live proof
 
-The uncommitted wrapper changes give each service a deterministic container name, add cleanup traps to both the inner IBC runner and outer Xvfb layer, and set systemd `KillMode=process` so systemd does not kill conmon before Podman cleanup. The first version fixed inner ownership but still orphaned the outer Xvfb child; the latest outer-layer forwarding change builds and activates, but its start/stop proof is not complete because 1Password authorization did not surface.
+The wrapper gives each service a deterministic container name, adds cleanup traps to both the inner IBC runner and outer Xvfb layer, and sets systemd `KillMode=process` so systemd does not kill conmon before Podman cleanup. The final stop proof ended with the unit `inactive/dead` and `Result=success`, removed the named container and private runtime directory, and closed port 4001. Exit status 143 is explicitly accepted as a successful signal-driven shutdown.
 
-The helper now tries ordinary idempotent `op signin` first and uses a raw scoped-session fallback only for non-app-integrated CLI sessions. 1Password recognizes the user's existing terminal, but Codex PTYs do not reliably surface the desktop approval. Launching a new GNOME Console also stopped surfacing a prompt at the final attempt.
+The helper tries ordinary idempotent `op signin` first and uses a raw scoped-session fallback only for non-app-integrated CLI sessions. 1Password authorization remains scoped to the user's terminal process tree; run both `op signin` and the reauthentication helper in that terminal rather than a Codex PTY.
 
-### Resume procedure
+After the cleanup proof, a fresh authenticated start completed successfully. Exactly one named container remains running, the service is active, port 4001 listens, the runtime credential file is mode 0600, and no `OP_SESSION_*` or `OP_ACCOUNT` variable reached the service environment. Sanitized API checks returned three managed accounts, 33 position rows, 8 balance rows, zero execution rows, and an AAPL LMT what-if with `preview_only=true` and status `PreSubmitted`. Submit remains blocked.
 
-1. In the user's already-open terminal, run `op signin --account my.1password.com`, then immediately run `ibkr-gateway-reauth-main-live` in that same terminal. Do not use a Codex PTY for this authorization proof.
-2. As soon as the named container exists, stop the unit before IBKR second factor:
-
-   ```bash
-   systemctl --user stop ibkr-gateway-main-live.service
-   ```
-
-3. Verify all three are true: unit inactive, no `ibkr-gateway-main-live` container, and no runtime `ibc.ini`.
-4. If cleanup passes, start from the same authorized terminal, approve IBKR second factor, and rerun `connect`, row-count checks, and the constrained preview.
-5. Confirm exactly one named container remains, service/port stay active, then update this handoff, commit the three continuation files plus this note, and leave the headless service running.
-
-Do not merge or push before this final stop/start proof passes.
+The full Home Manager activation build passed, but activation later encountered an unrelated pre-existing link conflict at `~/.agents/skills/incremental-editing`. That directory was left untouched; the freshly built IBKR unit was linked and reloaded directly for the runtime proof.
 
 ## Live verification: 2026-07-11
 
@@ -123,13 +112,6 @@ git diff --check
 
 The only unavoidable legacy workstation text in the implementation is IBC's upstream `--tws-path` and `--tws-settings-path` option spelling. Those flags are required by IBC even when it is launched in Gateway mode; they do not indicate a workstation package or runtime.
 
-## Remaining interactive test
+## Next repository step
 
-No live authentication was performed during implementation. With the user present to unlock 1Password and manually complete the authenticator challenge:
-
-1. Run `ibkr-gateway-reauth-main-live`.
-2. Confirm `systemctl --user is-active ibkr-gateway-main-live.service` reports `active`.
-3. Run `ibkr-local doctor --profile main-live`, `connect`, and one read-only data command.
-4. Stop the service and confirm the runtime directory has been removed.
-
-If the first run fails, inspect only sanitized service status/log output. Never print the generated IBC file, environment, credential references, or scoped session variables.
+The runtime work is ready for review. Do not print the generated IBC file, environment, credential references, or scoped session variables during any follow-up verification.

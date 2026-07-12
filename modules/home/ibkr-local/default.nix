@@ -214,6 +214,7 @@ let
       export IBGATEWAY_DIR=${lib.escapeShellArg profile.gatewayDir}
       export IBGATEWAY_CONFIG_DIR=${lib.escapeShellArg profile.jtsConfigDir}
       export IBGATEWAY_LOG_DIR=${lib.escapeShellArg profile.logDir}
+      export IBKR_CONTAINER_NAME=${lib.escapeShellArg "ibkr-gateway-${name}"}
 
       exec ${cfg.package}/bin/ibkr-local ${gatewayArgs}
     '';
@@ -295,11 +296,14 @@ let
       if ! (
         OP_ACCOUNT="$op_account" "$op_bin" whoami --account "$op_account" >/dev/null 2>&1
       ); then
-        session=$("$op_bin" signin --account "$op_account" --raw)
-        # Desktop-app integration can authorize this process tree without
-        # returning a raw OP_SESSION token. Export only when one is present;
-        # in both modes, whoami is the authoritative success check.
-        if [[ -n "$session" ]]; then
+        # App-integrated op authorizes the current terminal/process tree and
+        # intentionally needs no reusable token. Prefer that path first.
+        "$op_bin" signin --account "$op_account" >/dev/null
+        if ! OP_ACCOUNT="$op_account" "$op_bin" whoami --account "$op_account" >/dev/null 2>&1; then
+          # Non-app-integrated CLI sessions still require the traditional
+          # scoped token, held only in this helper process.
+          session=$("$op_bin" signin --account "$op_account" --raw)
+          [[ -n "$session" ]] || die "1Password sign-in did not return a scoped session"
           export "$session_env=$session"
         fi
         OP_ACCOUNT="$op_account" "$op_bin" whoami --account "$op_account" >/dev/null 2>&1 \
@@ -431,7 +435,11 @@ let
         ExecStart = "${runScript}/bin/ibkr-gateway-run-${name}";
         ExecStopPost = "${pkgs.coreutils}/bin/rm -rf %t/ibkr-local/${name}";
         Restart = "no";
-        KillMode = "mixed";
+        SuccessExitStatus = "143";
+        # The wrapper owns a named Podman container and handles TERM by
+        # stopping/removing it. Killing the entire cgroup would kill conmon
+        # before Podman can perform that cleanup.
+        KillMode = "process";
         TimeoutStopSec = "45s";
       };
     };

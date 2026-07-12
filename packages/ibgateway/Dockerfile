@@ -6,6 +6,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     ca-certificates \
     libx11-6 \
+    scrot \
+    xdotool \
     libxrender1 \
     libxtst6 \
     libxi6 \

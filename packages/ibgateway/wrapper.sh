@@ -195,7 +195,27 @@ if [ "$DISPLAY_MODE" = "xvfb" ]; then
   if [ "$APP_MODE" = "ibc" ]; then
     replay_args+=(--ibc)
   fi
-  exec xvfb-run -a --server-args="-screen 0 $XVFB_GEOMETRY" "$0" "${replay_args[@]}" "${ARGS[@]}"
+  xvfb_child=""
+  # shellcheck disable=SC2329 # invoked indirectly by signal/EXIT traps
+  cleanup_xvfb_run() {
+    if [ -n "$xvfb_child" ]; then
+      kill -TERM "$xvfb_child" >/dev/null 2>&1 || true
+    fi
+    if [ -n "${IBKR_CONTAINER_NAME:-}" ]; then
+      podman stop --time 20 "$IBKR_CONTAINER_NAME" >/dev/null 2>&1 || true
+      podman rm --force "$IBKR_CONTAINER_NAME" >/dev/null 2>&1 || true
+    fi
+  }
+  trap cleanup_xvfb_run EXIT
+  trap 'exit 143' HUP INT TERM
+  xvfb-run -a --server-args="-screen 0 $XVFB_GEOMETRY" "$0" "${replay_args[@]}" "${ARGS[@]}" &
+  xvfb_child=$!
+  set +e
+  wait "$xvfb_child"
+  status=$?
+  set -e
+  xvfb_child=""
+  exit "$status"
 fi
 
 if [ "$APP_MODE" = "ibc" ]; then
@@ -294,6 +314,17 @@ podman_args=(
   -e "INSTALL4J_JAVA_HOME_OVERRIDE=/opt/ibgateway/latest/jre"
 )
 
+CONTAINER_NAME=${IBKR_CONTAINER_NAME:-}
+if [ -n "$CONTAINER_NAME" ]; then
+  case "$CONTAINER_NAME" in
+    *[!A-Za-z0-9_.-]*)
+      echo "Invalid IBKR_CONTAINER_NAME" >&2
+      exit 2
+      ;;
+  esac
+  podman_args+=(--name "$CONTAINER_NAME")
+fi
+
 if [ -e /dev/dri ]; then
   podman_args+=(--device /dev/dri)
 fi
@@ -358,7 +389,16 @@ if [ "$APP_MODE" = "ibc" ]; then
 fi
 
 if [ "$APP_MODE" = "ibc" ]; then
-  trap restore_ibc_launchers EXIT
+  # shellcheck disable=SC2329 # invoked indirectly by the EXIT trap
+  cleanup_ibc_run() {
+    if [ -n "$CONTAINER_NAME" ]; then
+      podman stop --time 20 "$CONTAINER_NAME" >/dev/null 2>&1 || true
+      podman rm --force "$CONTAINER_NAME" >/dev/null 2>&1 || true
+    fi
+    restore_ibc_launchers
+  }
+  trap cleanup_ibc_run EXIT
+  trap 'exit 143' HUP INT TERM
   set +e
   podman run "${podman_args[@]}" "$IMAGE_NAME" "${container_cmd[@]}" 2>&1 | sanitize_output
   status=${PIPESTATUS[0]}
