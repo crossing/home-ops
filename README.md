@@ -2,6 +2,12 @@
 
 This repository manages NixOS and Home Manager configurations using [Snowfall Lib](https://snowfall.org/), an opinionated framework for organizing Nix Flakes.
 
+The future direction for extending this repository into a unified household
+operations control plane is recorded in
+[Home Operations Control Plane](docs/architecture/home-ops-control-plane.md).
+The document is architectural guidance only; its proposed cloud resources are
+not currently implemented.
+
 ## Project Structure
 
 Snowfall strictly enforces a directory structure to automatically discover and wire up Nix derivations. Below is how this project maps to the Snowfall standard:
