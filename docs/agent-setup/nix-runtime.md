@@ -13,9 +13,9 @@ Home Manager owns the stable runtime needed by agents and mutable skills.
 | `safe-op` | local `safe-cli` flake input via the personal home module |
 | Git, Git LFS and libsecret integration | `modules/home/personal/developer/git.nix` |
 
-The `safe-cli` input is deliberately local at `~/works/home/safe-cli`; bootstrap
-must clone its canonical repository and checkout the revision recorded in
-`bootstrap.md` before evaluating this flake on a fresh machine.
+The `safe-cli` flake input is fetched directly from
+`github:crossing/safe-cli` and pinned by `flake.lock`; no local checkout is
+required.
 
 ## Dependency policy
 

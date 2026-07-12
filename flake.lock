@@ -580,14 +580,17 @@
         ]
       },
       "locked": {
-        "lastModified": 1782762708,
-        "narHash": "sha256-Cgo53L6+PcjucHRU0f+AenWgQFFw+QlyR0uslwrcOIA=",
-        "path": "/home/xing/works/home/safe-cli",
-        "type": "path"
+        "lastModified": 1777748454,
+        "narHash": "sha256-A17oFLaovtu438+fw+i9P9MtSzCfKO4UPy39Y9nGWHI=",
+        "owner": "crossing",
+        "repo": "safe-cli",
+        "rev": "3468c1765b767f7e360ae6a702091aea18c27bc1",
+        "type": "github"
       },
       "original": {
-        "path": "/home/xing/works/home/safe-cli",
-        "type": "path"
+        "owner": "crossing",
+        "repo": "safe-cli",
+        "type": "github"
       }
     },
     "snowfall-lib": {

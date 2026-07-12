@@ -8,6 +8,10 @@ Expected live discovery excludes the six GWS skills below: they are installed
 for other agents but explicitly set to `enabled = false` in Codex. The other
 eleven personal entries are expected in a Codex live probe.
 
+The current HM profile installs Codex, Hermes, and Antigravity. Reviews must
+include the applicable native roots below; future profiles should add or remove
+targets based on the executables and modules they actually install.
+
 ## Mutable personal discovery root
 
 | Name | Path/type | Provenance or version | Runtime | SHA-256 of `SKILL.md` |
@@ -51,6 +55,24 @@ upstream baseline without a separate patch.
 
 These are owned by Codex or their installer, not Home Manager. Their current
 baseline contains 7 `SKILL.md` files.
+
+## Hermes skills
+
+`hermes skills list` currently reports four enabled local skills under
+`~/.hermes/skills`: `ee-bill-download-workflow`, `index-agents-skills`,
+`install-mcp-on-nixos`, and `use-1password-cli`. Curator state, `.hub`, and
+`.curator_backups` are agent state rather than independent skills and must not
+be treated as mutable review targets or copied into the ledger.
+
+## Antigravity/Gemini skills
+
+The current native tree contains the bundled `antigravity_guide` under
+`~/.gemini/antigravity-cli/builtin/skills` and five Chrome DevTools plugin
+skills under `~/.gemini/config/plugins/chrome-devtools-plugin/skills`:
+`a11y-debugging`, `chrome-devtools`, `debug-optimize-lcp`,
+`memory-leak-debugging`, and `troubleshooting`. These are owned by Antigravity
+or its plugin installer; review enabled state and compatibility, but do not
+rewrite bundled/plugin content as if it were a personal mutable skill.
 
 ## Desired Codex plugins
 

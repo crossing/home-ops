@@ -23,3 +23,10 @@ every mutation and restore the prior local copy on failure. It may not read or
 alter secrets, authentication state, cookies, or browser profiles. Material
 repository changes go to a dated branch and draft PR; the default branch is
 never updated directly.
+
+## 2026-07-12: reviews follow installed agents
+
+Bootstrap and weekly review derive their targets from the agents installed by
+the active Home Manager profile. Shared personal skills and each installed
+agent's native roots are reviewed; absent agents are skipped. Exactly one agent
+owns the weekly schedule to prevent duplicate maintenance runs.
