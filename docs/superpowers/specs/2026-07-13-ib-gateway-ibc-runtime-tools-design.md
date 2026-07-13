@@ -1,27 +1,35 @@
-# IB Gateway IBC runtime tools design
+# IB Gateway IBC autorestart parser design
 
 ## Problem
 
 The verified `main-live` Gateway survived its initial authenticated launch but
-failed at the configured weekday IBC restart. IBC's `ibcstart.sh` invoked
-`xargs` and `cut`; neither executable exists in the current Ubuntu image, so
-the service exited with status 127 and port 4001 closed.
+failed at the configured weekday IBC restart. When Gateway exited normally,
+IBC re-entered `find_auto_restart`; its `xargs dirname` and `cut` pipeline
+returned command-not-found errors, so the service exited with status 127 and
+port 4001 closed.
+
+An image-level test disproved the original missing-package hypothesis: the
+unchanged Dockerfile builds an image in which both commands resolve and run.
+The fix therefore belongs at the failing post-JVM parser boundary, not in the
+image dependency list.
 
 ## Design
 
-Keep the existing Gateway/IBC architecture unchanged. Add the Ubuntu packages
-that provide IBC's missing runtime commands (`findutils` for `xargs` and
-`coreutils` for `cut`) to `packages/ibgateway/Dockerfile`.
+Keep the existing Gateway/IBC architecture and container dependencies
+unchanged. Patch the packaged IBC 3.24.1 `find_auto_restart` function to derive
+the one-level autorestart directory using Bash parameter expansion rather than
+the `xargs dirname` and `cut` pipeline.
 
-Add a narrow executable regression test that builds the Dockerfile image and
-checks the required commands inside that image. The test must fail against the
-current Dockerfile, pass after the dependency change, and emit only command
-availability status.
+Add a narrow executable regression test that extracts the real packaged
+function, makes only `find` available through a shell function, and verifies
+that a `Jts/session/autorestart` file produces `-Drestart=session`. The test
+must fail against the unpatched package and pass against the patched package.
 
 ## Verification
 
-1. Observe the regression test fail because `xargs` and `cut` are absent.
-2. Add the two image dependencies and observe the test pass.
+1. Observe the regression test fail against the unpatched IBC script with the
+   same `xargs`/`cut` errors as the live scheduled restart.
+2. Apply the Bash-only parser patch and observe the test pass.
 3. Rebuild the `ibgateway`, `ibkr-local`, and Home Manager activation outputs.
 4. Reauthenticate `main-live`, exercise a controlled service stop/start, and
    verify clean container/runtime-directory cleanup.

@@ -1,10 +1,10 @@
-# IB Gateway IBC Runtime Tools Implementation Plan
+# IB Gateway IBC Autorestart Parser Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Restore reliable scheduled IBC restarts by ensuring the Gateway container contains every shell command used by IBC, then resume the paused dual-live runtime proof.
+**Goal:** Restore reliable scheduled IBC restarts by removing the failing external-command pipeline from IBC's autorestart parser, then resume the paused dual-live runtime proof.
 
-**Architecture:** Keep the Gateway wrapper, generated systemd services, and secret flow unchanged. Add an image-level smoke test for IBC's required commands, minimally extend the Ubuntu image dependencies, rebuild all affected Nix outputs, and then repeat the sanitized service lifecycle and pension-login checks.
+**Architecture:** Keep the Gateway image, wrapper, generated systemd services, and secret flow unchanged. Test the real packaged `find_auto_restart` function under the observed restricted-command condition, patch IBC 3.24.1 to use Bash parameter expansion, rebuild all affected Nix outputs, and then repeat the sanitized service lifecycle and pension-login checks.
 
 **Tech Stack:** Nix, Home Manager, Bash, Podman, Ubuntu 24.04, IBC 3.24.1, systemd user services, `safe-op`/1Password CLI.
 
@@ -18,111 +18,111 @@
 
 ---
 
-### Task 1: Add an image-level runtime-tool regression test
+### Task 1: Add an IBC autorestart parser regression test
 
 **Files:**
-- Create: `packages/ibgateway/test-runtime-tools.sh`
+- Create: `packages/ibgateway/test-ibc-autorestart.sh`
 
 **Interfaces:**
-- Consumes: `PODMAN` as an optional absolute Podman executable and `packages/ibgateway/Dockerfile`.
-- Produces: exit 0 only when a freshly built test image resolves both `xargs` and `cut`; no container data or secrets are emitted.
+- Consumes: a path to a packaged `scripts/ibcstart.sh`.
+- Produces: exit 0 only when the real `find_auto_restart` function derives `-Drestart=session` while only `find` is available externally.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
-Create this executable test:
+Create an executable test that extracts `find_auto_restart` from the supplied
+IBC script, creates `Jts/session/autorestart`, provides `find` as a shell
+function, sets `PATH` to an intentionally absent directory, invokes the
+extracted function, and asserts:
+
+The committed test extracts the function with `awk`, creates a temporary
+`Jts/session/autorestart`, supplies `find` as a shell function, clears `PATH`,
+and requires both of these assertions:
 
 ```bash
-#!/usr/bin/env bash
-set -euo pipefail
-
-script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
-podman=${PODMAN:-podman}
-image=localhost/ibgateway-runtime-tools-test:local
-
-cleanup() {
-  "$podman" image rm --force "$image" >/dev/null 2>&1 || true
-}
-trap cleanup EXIT
-
-"$podman" build --quiet --tag "$image" --file "$script_dir/Dockerfile" "$script_dir" >/dev/null
-"$podman" run --rm "$image" bash -euc '
-  failed=0
-  for tool in xargs cut; do
-    if ! command -v "$tool" >/dev/null 2>&1; then
-      printf "missing runtime tool: %s\\n" "$tool" >&2
-      failed=1
-    fi
-  done
-  exit "$failed"
-'
-printf 'IB Gateway runtime tools available: xargs cut\n'
+if [[ "$autorestart_option" != " -Drestart=session" ]]; then
+  echo "unexpected autorestart option" >&2
+  exit 1
+fi
+if [[ "$restart_needed" != yes ]]; then
+  echo "restart was not marked as needed" >&2
+  exit 1
+fi
 ```
 
-- [ ] **Step 2: Verify RED against the current image**
+- [x] **Step 2: Verify RED against the unpatched package**
 
 Run:
 
 ```bash
-chmod +x packages/ibgateway/test-runtime-tools.sh
-nix shell nixpkgs#podman -c bash packages/ibgateway/test-runtime-tools.sh
+chmod +x packages/ibgateway/test-ibc-autorestart.sh
+bash packages/ibgateway/test-ibc-autorestart.sh /nix/store/zyyb8zk8zwz2ijmwmhq29i2sl6kd4hz2-ibc-3.24.1/scripts/ibcstart.sh
 ```
 
-Expected: nonzero with `missing runtime tool: xargs` and `missing runtime tool: cut`. If the local image cache differs, require at least one missing-tool failure and correlate it with the journal evidence before proceeding.
+Expected: nonzero with `xargs: command not found` and `cut: command not found`, matching the scheduled-restart journal.
 
-- [ ] **Step 3: Commit the verified failing test**
+- [x] **Step 3: Commit the verified failing test**
 
 Run:
 
 ```bash
-git add packages/ibgateway/test-runtime-tools.sh
+git add packages/ibgateway/test-ibc-autorestart.sh
 git diff --cached --check
-git commit -m "test(ibkr): cover IBC container runtime tools"
+git commit -m "test(ibkr): cover IBC autorestart parsing"
 ```
 
 Expected: one committed executable test and no production change.
 
 ---
 
-### Task 2: Install the missing IBC runtime commands
+### Task 2: Patch IBC autorestart parsing
 
 **Files:**
-- Modify: `packages/ibgateway/Dockerfile`
+- Create: `packages/ibgateway/ibc-autorestart-builtins.patch`
+- Modify: `packages/ibgateway/default.nix`
 
 **Interfaces:**
-- Consumes: Ubuntu package repositories used by the existing image build.
-- Produces: `xargs` from `findutils` and `cut` from `coreutils` inside every newly hashed Gateway image.
+- Consumes: the fetched IBC 3.24.1 source tree.
+- Produces: a patched IBC derivation whose one-level autorestart path parser uses only Bash parameter expansion after `find` returns a file.
 
-- [ ] **Step 1: Add the minimal image dependencies**
+- [x] **Step 1: Add the minimal source patch**
 
-Add these entries to the existing `apt-get install` list immediately after `ca-certificates`:
+Replace the `xargs dirname`/`cut` parsing variables with:
 
-```dockerfile
-    coreutils \
-    findutils \
+```bash
+local parent=${x%/*}
+local relative_parent=${parent#/}
+if [[ -n "$relative_parent" && "$relative_parent" != */* ]]; then
 ```
 
-- [ ] **Step 2: Verify GREEN**
+Use `relative_parent` as `autorestart_path`. Preserve the existing duplicate
+file cleanup and restart-needed behavior.
+
+Add the patch to the IBC derivation's `patches` and expose the derivation as
+`passthru.ibc` on the final `ibgateway` package for direct regression testing.
+
+- [x] **Step 2: Verify GREEN**
 
 Run:
 
 ```bash
-nix shell nixpkgs#podman -c bash packages/ibgateway/test-runtime-tools.sh
+ibc_path=$(nix build --no-link --print-out-paths '.#packages.x86_64-linux.ibgateway.ibc')
+bash packages/ibgateway/test-ibc-autorestart.sh "$ibc_path/scripts/ibcstart.sh"
 ```
 
-Expected: exit 0 and `IB Gateway runtime tools available: xargs cut`.
+Expected: exit 0 and `PASS: IBC autorestart parser uses Bash path handling`.
 
-- [ ] **Step 3: Run focused static checks and commit**
+- [x] **Step 3: Run focused static checks and commit**
 
 Run:
 
 ```bash
-bash -n packages/ibgateway/test-runtime-tools.sh packages/ibgateway/wrapper.sh
+bash -n packages/ibgateway/test-ibc-autorestart.sh packages/ibgateway/wrapper.sh
 git diff --check
-git add packages/ibgateway/Dockerfile
-git commit -m "fix(ibkr): install IBC runtime tools"
+git add packages/ibgateway/default.nix packages/ibgateway/ibc-autorestart-builtins.patch
+git commit -m "fix(ibkr): harden IBC autorestart parsing"
 ```
 
-Expected: syntax and whitespace checks pass; only the Dockerfile dependency change is committed.
+Expected: syntax and whitespace checks pass; only the IBC packaging change is committed.
 
 ---
 
@@ -179,7 +179,7 @@ Use the rebuilt `ibkr-local` to run `connect`, `positions`, `balances`, and `exe
 
 - [ ] **Step 6: Update and commit the handoff**
 
-Record the failure cause, image fix, build evidence, lifecycle result, live profile state, and exact next step without secrets or financial data. Then run:
+Record the failure cause, parser fix, build evidence, lifecycle result, live profile state, and exact next step without secrets or financial data. Then run:
 
 ```bash
 git diff --check
