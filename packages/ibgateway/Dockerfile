@@ -1,11 +1,12 @@
-FROM docker.io/library/ubuntu:24.04
+FROM docker.io/library/ubuntu@sha256:4fbb8e6a8395de5a7550b33509421a2bafbc0aab6c06ba2cef9ebffbc7092d90
 
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl \
     ca-certificates \
     libx11-6 \
+    scrot \
+    xdotool \
     libxrender1 \
     libxtst6 \
     libxi6 \
@@ -46,6 +47,6 @@ ENV LANG=en_US.UTF-8
 ENV LANGUAGE=en_US:en
 ENV LC_ALL=en_US.UTF-8
 
-RUN mkdir -p /opt/tws /home/tws /root/Jts && chmod 777 /opt/tws /home/tws /root /root/Jts
+RUN mkdir -p /opt/ibgateway/latest /home/ibgateway/Jts /root/Jts && chmod 777 /opt/ibgateway/latest /home/ibgateway /home/ibgateway/Jts /root /root/Jts
 
 CMD ["tail", "-f", "/dev/null"]
