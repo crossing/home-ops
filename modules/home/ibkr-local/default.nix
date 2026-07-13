@@ -209,6 +209,18 @@ let
         ${lib.escapeShellArg profile.jtsConfigDir} \
         ${lib.escapeShellArg profile.logDir}
 
+      jts_ini=${lib.escapeShellArg "${profile.jtsConfigDir}/jts.ini"}
+      if [[ -f "$jts_ini" ]]; then
+        ${pkgs.gnugrep}/bin/grep -qx 'TrustedIPs=127.0.0.1' "$jts_ini" \
+          || { echo "Gateway API trust policy is not localhost-only: $jts_ini" >&2; exit 1; }
+      elif [[ -e "$jts_ini" ]]; then
+        echo "Gateway API trust policy is not a regular file: $jts_ini" >&2
+        exit 1
+      else
+        umask 077
+        printf '[IBGateway]\nTrustedIPs=127.0.0.1\n' >"$jts_ini"
+      fi
+
       export IBKR_LOCAL_PROFILES=${lib.escapeShellArg profilesJsonFile}
       export IBC_INI="$ibc_ini"
       export IBGATEWAY_DIR=${lib.escapeShellArg profile.gatewayDir}
@@ -239,8 +251,9 @@ let
         exit 1
       }
 
-      op_bin=$(command -v op || true)
-      [[ -n "$op_bin" ]] || die "op is required"
+      op_bin=/run/wrappers/bin/op
+      [[ -x "$op_bin" ]] || die "NixOS 1Password wrapper is required at $op_bin"
+      export PATH="/run/wrappers/bin:$PATH"
       safe_op_bin=$(command -v safe-op || true)
       [[ -n "$safe_op_bin" ]] || die "safe-op is required"
 

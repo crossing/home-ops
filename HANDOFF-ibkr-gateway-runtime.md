@@ -40,6 +40,20 @@ environment contains `OP_SESSION_*` or `OP_ACCOUNT`. The final sanitized data
 checks returned counts of 4 positions, 5 balance entries, and 4 executions for
 each live profile. Live `order-preview ... --submit` remains blocked.
 
+### Pre-merge hardening
+
+The final review hardening is built and regression-tested but was not applied
+to the already-authenticated running services:
+
+- IBC rejects unsolicited API prompts, and each service start requires the
+  persistent Gateway trust list to be exactly `127.0.0.1`.
+- The Ubuntu base image is pinned by digest, and the IB Gateway 10.48 installer
+  is a fixed-output Nix input rather than a runtime download.
+- Reauthentication requires `/run/wrappers/bin/op`, and the same wrapper is
+  first on `PATH` for `safe-op`.
+- The coordinator stops a Gateway that it started if API readiness times out;
+  it does not stop a service that was already active.
+
 ### Build and test evidence
 
 The following all passed from this worktree:
@@ -50,6 +64,8 @@ The following all passed from this worktree:
   asserts host networking).
 - `homes/x86_64-linux/xing@desktop/test-ibkr-ports.sh`.
 - `modules/home/ibkr-local/test-ibkr-gateway-ensure.sh`.
+- API trust-policy, pinned-runtime-input, rendered-IBC-policy, and NixOS
+  1Password-wrapper regression tests.
 - Bash syntax checks and `git diff --check`.
 - `nix build .#ibgateway -L`.
 - `nix build .#ibkr-local -L`.

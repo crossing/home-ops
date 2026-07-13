@@ -45,6 +45,7 @@ for profile in "$@"; do
 
   service="ibkr-gateway-$profile.service"
   helper="ibkr-gateway-reauth-$profile"
+  started_here=0
 
   if systemctl --user -q is-active "$service"; then
     printf '%s: already active\n' "$profile" >&2
@@ -58,6 +59,7 @@ for profile in "$@"; do
       printf '%s: reauthentication failed\n' "$profile" >&2
       exit 1
     fi
+    started_here=1
 
     if systemctl --user -q is-active "$service"; then
       printf '%s: active\n' "$profile" >&2
@@ -72,6 +74,17 @@ for profile in "$@"; do
     printf '%s: API ready\n' "$profile" >&2
   else
     printf '%s: API readiness timed out after %s seconds\n' "$profile" "$ready_timeout" >&2
+    if ((started_here)); then
+      printf '%s: stopping service started by this coordinator\n' "$profile" >&2
+      if ! systemctl --user stop "$service"; then
+        printf '%s: failed to stop unready service\n' "$profile" >&2
+        exit 1
+      fi
+      if systemctl --user -q is-active "$service"; then
+        printf '%s: service remained active after cleanup\n' "$profile" >&2
+        exit 1
+      fi
+    fi
     exit 1
   fi
 done

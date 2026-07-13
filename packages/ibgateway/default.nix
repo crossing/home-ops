@@ -2,6 +2,12 @@
 
 let
   ibcVersion = "3.24.1";
+  ibgatewayVersion = "10.48";
+  ibgatewayInstaller = pkgs.fetchurl {
+    name = "ibgateway-${ibgatewayVersion}-standalone-linux-x64.sh";
+    url = "https://download2.interactivebrokers.com/installers/ibgateway/latest-standalone/ibgateway-latest-standalone-linux-x64.sh";
+    hash = "sha256-5zwXjP5B7Qfe/so7OggmZY8p1XgKj9dZSGjrvoSQ9Fs=";
+  };
   ibc = pkgs.stdenvNoCC.mkDerivation {
     pname = "ibc";
     version = ibcVersion;
@@ -26,7 +32,7 @@ let
       DOCKERFILE = ./Dockerfile;
       IBC_DIR = ibc;
       IBC_VERSION = ibcVersion;
-      IBGATEWAY_INSTALL_URL = "https://download2.interactivebrokers.com/installers/ibgateway/latest-standalone/ibgateway-latest-standalone-linux-x64.sh";
+      IBGATEWAY_INSTALLER = ibgatewayInstaller;
     };
   };
 in

@@ -1,9 +1,8 @@
-FROM docker.io/library/ubuntu:24.04
+FROM docker.io/library/ubuntu@sha256:4fbb8e6a8395de5a7550b33509421a2bafbc0aab6c06ba2cef9ebffbc7092d90
 
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl \
     ca-certificates \
     libx11-6 \
     scrot \

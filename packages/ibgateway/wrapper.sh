@@ -229,7 +229,7 @@ if [ "$APP_MODE" = "ibc" ]; then
 fi
 
 DOCKERFILE="${DOCKERFILE:?DOCKERFILE is required}"
-IBGATEWAY_INSTALL_URL="${IBGATEWAY_INSTALL_URL:?IBGATEWAY_INSTALL_URL is required}"
+IBGATEWAY_INSTALLER="${IBGATEWAY_INSTALLER:?IBGATEWAY_INSTALLER is required}"
 
 IMAGE_NAME="$APP_ID:$(md5sum "$DOCKERFILE" | cut -c1-8)"
 USER_ID=$(id -u)
@@ -255,11 +255,10 @@ if [ ! -f "$install_marker_path" ]; then
     -u "$USER_ID:$GROUP_ID" \
     -v "$INSTALL_DIR:/opt/ibgateway/latest" \
     -v "$I4J_TEMP:/opt/i4j_jres" \
+    -v "$IBGATEWAY_INSTALLER:/tmp/$APP_ID-installer.sh:ro" \
     -e "HOME=/home/ibgateway" \
     "$IMAGE_NAME" \
-    bash -c "curl -L -o /tmp/$APP_ID-installer.sh '$IBGATEWAY_INSTALL_URL' && \
-             chmod +x /tmp/$APP_ID-installer.sh && \
-             INSTALL4J_KEEP_TEMP=true /tmp/$APP_ID-installer.sh -q -dir '/opt/ibgateway/latest'"
+    bash -c "INSTALL4J_KEEP_TEMP=true bash /tmp/$APP_ID-installer.sh -q -dir '/opt/ibgateway/latest'"
 
   echo "Installer finished. Proceeding to Step 2..."
 

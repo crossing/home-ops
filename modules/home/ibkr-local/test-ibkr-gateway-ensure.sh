@@ -21,11 +21,23 @@ mkdir -p "$fake_bin" "$state_dir"
 cat >"$fake_bin/systemctl" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
+[[ ${1:-} == --user ]] && shift
+[[ ${1:-} == -q ]] && shift
+action=${1:-}
 service=${!#}
 profile=${service#ibkr-gateway-}
 profile=${profile%.service}
-[[ -f "$IBKR_TEST_STATE_DIR/$profile" ]] || exit 3
-[[ $(<"$IBKR_TEST_STATE_DIR/$profile") == active ]]
+case "$action" in
+  is-active)
+    [[ -f "$IBKR_TEST_STATE_DIR/$profile" ]] || exit 3
+    [[ $(<"$IBKR_TEST_STATE_DIR/$profile") == active ]]
+    ;;
+  stop)
+    printf 'stop %s\n' "$profile" >>"$IBKR_TEST_EVENT_LOG"
+    printf 'inactive\n' >"$IBKR_TEST_STATE_DIR/$profile"
+    ;;
+  *) exit 2 ;;
+esac
 EOF
 chmod +x "$fake_bin/systemctl"
 
@@ -145,6 +157,15 @@ run_case main_unready active inactive "" main-live
 assert_exit 1
 assert_helpers ""
 assert_no_event 'pension-live'
+assert_no_event 'stop main-live'
+assert_service main-live active
+assert_service pension-live inactive
+
+run_case main_started_unready inactive inactive "" main-live
+assert_exit 1
+assert_helpers 'main-live'
+assert_events $'start main-live\nready main-live\nready main-live\nstop main-live'
+assert_service main-live inactive
 assert_service pension-live inactive
 
 printf 'PASS: ibkr-gateway-ensure coordinator\n'
