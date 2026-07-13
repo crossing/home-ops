@@ -1,8 +1,17 @@
-{ config, lib, ... }:
-lib.mkIf config.profiles.personal.enable {
-  programs.aiAgents.enable = true;
+{ config, lib, pkgs, ... }:
+{
+  imports = [
+    ./codex.nix
+    ./google.nix
+    ./hermes.nix
+  ];
 
-  programs.antigravity-cli = {
-    enable = true;
+  config = lib.mkIf config.profiles.personal.enable {
+    # Skills are intentionally mutable under ~/.agents/skills. Home Manager
+    # owns only the executables and non-FHS runtime dependencies they rely on.
+    home.packages = [
+      pkgs.agent-browser
+      pkgs.rtk
+    ];
   };
 }
