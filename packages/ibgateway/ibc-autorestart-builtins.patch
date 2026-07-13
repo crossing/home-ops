@@ -1,0 +1,17 @@
+diff --git a/scripts/ibcstart.sh b/scripts/ibcstart.sh
+index e97cbab..b222bb3 100755
+--- a/scripts/ibcstart.sh
++++ b/scripts/ibcstart.sh
+@@ -370 +370 @@ function find_auto_restart {
+-	for i in $(find $tws_settings_path -type f -name "autorestart"); do
++	for i in $(find "$tws_settings_path" -type f -name "autorestart"); do
+@@ -372,3 +372,3 @@ function find_auto_restart {
+-		local y=$(echo $x | xargs dirname)/.
+-		local e=$(echo "$y" | cut -d/ -f3)
+-		if [[ "$e" = "." ]]; then
++		local parent=${x%/*}
++		local relative_parent=${parent#/}
++		if [[ -n "$relative_parent" && "$relative_parent" != */* ]]; then
+@@ -378 +378 @@ function find_auto_restart {
+-				autorestart_path=$(echo "$y" | cut -d/ -f2)
++				autorestart_path=$relative_parent

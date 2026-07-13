@@ -9,6 +9,7 @@ let
       url = "https://github.com/IbcAlpha/IBC/releases/download/${ibcVersion}/IBCLinux-${ibcVersion}.zip";
       hash = "sha256-2Z7ijMNTnjhD+wDSjcSEwlUAawBj048ICKw+8H3Yi7g=";
     };
+    patches = [ ./ibc-autorestart-builtins.patch ];
     nativeBuildInputs = [ pkgs.unzip ];
     unpackPhase = ''unzip "$src"'';
     installPhase = ''
@@ -31,6 +32,7 @@ let
 in
 pkgs.symlinkJoin {
   name = "ibgateway";
+  passthru = { inherit ibc; };
   paths = [ wrapper (pkgs.makeDesktopItem {
     name = "ibgateway";
     desktopName = "IB Gateway";
