@@ -1,5 +1,97 @@
 # IB Gateway runtime handoff
 
+## Current verified state: 2026-07-13
+
+This section supersedes every older runtime-state section below. The older
+sections remain only as investigation history.
+
+Branch: `feature/ibkr-local-integration`. The current host-port sequencing
+work is committed through `b434176`:
+
+- `27f3320` documents the host-network, non-default-port, sequential-start
+  design and implementation plan.
+- `29d4407` and `0f33323` add the port/network and API-readiness sequencing
+  regression tests.
+- `b434176` restores host networking, assigns non-default ports, staggers live
+  IBC restarts, and prevents a later profile from starting before the current
+  profile's constrained API handshake succeeds.
+
+### Live runtime proof
+
+Both live services are authenticated and active:
+
+- `main-live`: API port 4005, client ID 12, auto-restart 11:35 PM.
+- `pension-live`: API port 4003, client ID 22, auto-restart 11:55 PM.
+
+The coordinator observed `main-live: API ready` before invoking the pension
+reauthentication helper, then waited until `pension-live: API ready`. After
+both starts, listeners 4005 and 4003 coexist, default live port 4001 is closed,
+and both constrained API handshakes succeed. Both service invocation IDs
+remained stable across the final checks.
+
+The paper profiles were not started because there was no dual-paper Gateway
+history to prove that transient default-port contention could not recur. The
+conservative static configuration is `main-paper` on 4006 and
+`pension-paper` on 4004, keeping both away from IBKR's paper default 4002.
+
+Both named containers use Podman host networking. Their persistent mount sets
+are distinct. Both runtime credential files are mode 0600; neither service
+environment contains `OP_SESSION_*` or `OP_ACCOUNT`. The final sanitized data
+checks returned counts of 4 positions, 5 balance entries, and 4 executions for
+each live profile. Live `order-preview ... --submit` remains blocked.
+
+### Build and test evidence
+
+The following all passed from this worktree:
+
+- `packages/ibgateway/test-ibc-autorestart.sh` against the patched IBC store
+  output.
+- `packages/ibgateway/test-network-isolation.sh` (the retained filename now
+  asserts host networking).
+- `homes/x86_64-linux/xing@desktop/test-ibkr-ports.sh`.
+- `modules/home/ibkr-local/test-ibkr-gateway-ensure.sh`.
+- Bash syntax checks and `git diff --check`.
+- `nix build .#ibgateway -L`.
+- `nix build .#ibkr-local -L`.
+- `nix build '.#homeConfigurations."xing@desktop".activationPackage' -L`.
+
+Verified Home Manager generation:
+
+```text
+/nix/store/c6l4rms36cx2cvl69x00hpmg12igydp7-home-manager-generation
+```
+
+### Activation and rollback state
+
+Only the two IBKR user units and the two generated IBKR client configuration
+files were relinked from the verified generation. Backups are:
+
+```text
+/tmp/ibkr-unit-links-before-host-port-sequencing
+/tmp/ibkr-config-links-before-host-port-sequencing
+```
+
+The normal whole-profile Home Manager activation was not forced across
+unrelated pre-existing link conflicts. The running IBKR services and local CLI
+use the verified generation's units and configuration.
+
+On NixOS, `op` must resolve to `/run/wrappers/bin/op`; the plain
+`/run/current-system/sw/bin/op` lacks the `onepassword-cli` setgid credential
+and is rejected by the desktop app as an invalid group. For future manual
+reauthentication, put the wrapper first:
+
+```bash
+generation=/nix/store/c6l4rms36cx2cvl69x00hpmg12igydp7-home-manager-generation
+export PATH="/run/wrappers/bin:$generation/home-path/bin:/run/current-system/sw/bin:$PATH"
+op signin --account my.1password.com
+ibkr-gateway-ensure-live
+```
+
+Do not start pension directly when main is unauthenticated. Use the coordinator
+so it requires main's API readiness before starting pension. Do not print API
+rows, generated IBC configuration, credentials, account identifiers, or
+1Password session state.
+
 ## Paused dual-live continuation: 2026-07-12
 
 Branch: `feature/ibkr-local-integration`. The dual-instance work is committed through `7322793`:
