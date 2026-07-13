@@ -215,7 +215,6 @@ let
       export IBGATEWAY_CONFIG_DIR=${lib.escapeShellArg profile.jtsConfigDir}
       export IBGATEWAY_LOG_DIR=${lib.escapeShellArg profile.logDir}
       export IBKR_CONTAINER_NAME=${lib.escapeShellArg "ibkr-gateway-${name}"}
-      export IBKR_API_PORT=${lib.escapeShellArg (toString profile.port)}
 
       exec ${cfg.package}/bin/ibkr-local ${gatewayArgs}
     '';

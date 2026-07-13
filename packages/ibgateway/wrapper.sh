@@ -34,7 +34,6 @@ Environment:
   IBKR_LOG_DIR       Host log directory mounted into the container.
   IBKR_DISPLAY_MODE  visible, x11, xvfb, or ibc.
   IBKR_APP_MODE      direct or ibc.
-  IBKR_API_PORT      API port published on host loopback in IBC mode.
   IBKR_XVFB_GEOMETRY Xvfb geometry; defaults to 1920x1080x24.
   IBC_INI            Ephemeral local IBC config.
   IBC_APP_VERSION    Override auto-detected app major version for IBC.
@@ -72,27 +71,6 @@ sanitize_output() {
     -e 's/(-DjxBrowserKey=).*/\1***/g' \
     -e 's/(IbLoginId[[:space:]]*=[[:space:]]*).*/\1***/g' \
     -e 's/(IbPassword[[:space:]]*=[[:space:]]*).*/\1***/g'
-}
-
-configure_network() {
-  local api_port=$1
-  local numeric_port
-
-  if [[ ! "$api_port" =~ ^[0-9]+$ ]]; then
-    echo "Invalid IBKR_API_PORT: expected an integer from 1 through 65535" >&2
-    return 2
-  fi
-  numeric_port=$((10#$api_port))
-  if ((numeric_port < 1 || numeric_port > 65535)); then
-    echo "Invalid IBKR_API_PORT: expected an integer from 1 through 65535" >&2
-    return 2
-  fi
-
-  podman_args+=(
-    --network=bridge
-    --publish
-    "127.0.0.1:$numeric_port:$numeric_port/tcp"
-  )
 }
 
 detect_versioned_install() {
@@ -140,8 +118,6 @@ APP_MODE="${IBKR_APP_MODE:-direct}"
 XVFB_GEOMETRY="${IBKR_XVFB_GEOMETRY:-1920x1080x24}"
 IBC_VERSION_OVERRIDE="${IBC_APP_VERSION:-${IBKR_IBC_VERSION:-}}"
 IBC_TRADING_MODE_VALUE="${IBKR_TRADING_MODE:-}"
-API_PORT="${IBKR_API_PORT:-}"
-
 INSTALL_DIR="${IBGATEWAY_DIR:-${IBKR_INSTALL_DIR:-$default_install_dir}}"
 CONFIG_DIR="${IBGATEWAY_CONFIG_DIR:-${IBKR_CONFIG_DIR:-$default_config_dir}}"
 LOG_DIR="${IBGATEWAY_LOG_DIR:-${IBKR_LOG_DIR:-$default_log_dir}}"
@@ -250,10 +226,6 @@ if [ "$APP_MODE" = "ibc" ]; then
     echo "$APP_CLI_NAME --ibc requires IBC_DIR to point at a packaged IBC directory" >&2
     exit 2
   fi
-  if [ -z "$API_PORT" ]; then
-    echo "$APP_CLI_NAME --ibc requires IBKR_API_PORT for isolated loopback publication" >&2
-    exit 2
-  fi
 fi
 
 DOCKERFILE="${DOCKERFILE:?DOCKERFILE is required}"
@@ -325,6 +297,7 @@ fi
 
 podman_args=(
   --rm
+  --net=host
   --userns=keep-id
   --shm-size=2g
   -u "$USER_ID:$GROUP_ID"
@@ -339,12 +312,6 @@ podman_args=(
   -e "JAVA_TOOL_OPTIONS=-Dsun.java2d.uiScale=2 -Duser.home=/home/ibgateway"
   -e "INSTALL4J_JAVA_HOME_OVERRIDE=/opt/ibgateway/latest/jre"
 )
-
-if [ -n "$API_PORT" ]; then
-  configure_network "$API_PORT"
-else
-  podman_args+=(--network=bridge)
-fi
 
 CONTAINER_NAME=${IBKR_CONTAINER_NAME:-}
 if [ -n "$CONTAINER_NAME" ]; then

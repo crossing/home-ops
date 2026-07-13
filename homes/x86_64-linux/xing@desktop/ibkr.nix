@@ -18,7 +18,7 @@ lib.mkIf config.profiles.personal.enable {
 
     profiles = {
       main-paper = {
-        port = 4002;
+        port = 4006;
         clientId = 11;
         mode = "paper";
         jtsConfigDir = "${baseConfig}/jts/main-paper";
@@ -31,7 +31,7 @@ lib.mkIf config.profiles.personal.enable {
       };
 
       main-live = {
-        port = 4001;
+        port = 4005;
         clientId = 12;
         mode = "live";
         jtsConfigDir = "${baseConfig}/jts/main-live";
@@ -73,6 +73,7 @@ lib.mkIf config.profiles.personal.enable {
           readOnlyApi = false;
           readOnlyLogin = false;
           secondFactorDevice = "IB Key";
+          autoRestartTime = "11:35 PM";
         };
 
         pension-live = {
@@ -82,6 +83,7 @@ lib.mkIf config.profiles.personal.enable {
           readOnlyApi = false;
           readOnlyLogin = false;
           secondFactorDevice = "IB Key";
+          autoRestartTime = "11:55 PM";
         };
       };
     };
