@@ -1,0 +1,7 @@
+{
+  "version": "5.1.21",
+  "url": "https://fw-download.ubnt.com/data/unifi-os-server/f5e2-linux-x64-5.1.21-a400c9c6-8328-4634-b223-ebfcf742720a.21-x64",
+  "hash": "sha256-d+P+rBWVd5QC3Yf/jSDWb6o5yHtXJkb4b/AAZxEmJEU=",
+  "imageReference": "docker.io/library/uosserver:ab51f5e215ae",
+  "imageId": "f57fc5df045fedd8c3e1d59f049ac25066b2c48b0f2fbecf9a9bde2a47181adb"
+}

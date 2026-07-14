@@ -1,8 +1,6 @@
 {
   inputs = {
     nixpkgs.url = "nixpkgs/nixos-26.05";
-    nixpkgs-old.url = "nixpkgs/nixos-25.05";
-
     nixos-generators = {
       url = "github:nix-community/nixos-generators";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -77,9 +75,6 @@
 
       channels-config = {
         allowUnfree = true;
-        permittedInsecurePackages = [
-          "mongodb-7.0.25"
-        ];
       };
 
       deploy.nodes = nixpkgs.lib.mapAttrs

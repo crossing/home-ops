@@ -1,57 +1,63 @@
-{ stdenv
-, lib
-, fetchurl
-, unzip
-, skopeo
-}:
+{ lib, stdenvNoCC, fetchurl, coreutils, gnugrep, unzip }:
 
 let
-  version = "5.0.8";
-
-  # Select URL and hash based on system architecture
-  arch = stdenv.hostPlatform.system;
-
-  sources = {
-    "x86_64-linux" = {
-      url = "https://fw-download.ubnt.com/data/unifi-os-server/c2e4-linux-x64-5.0.8-bcb62759-753a-4be2-8546-a6e0de63e59a.8-x64";
-      sha256 = "db17656f222d371da5f96ed104e33503be16ca755817f126409b67d8009b1419";
-    };
-    "aarch64-linux" = {
-      url = "https://fw-download.ubnt.com/data/unifi-os-server/5bdb-linux-arm64-5.0.8-a217d9c7-425d-4d05-847d-4122ff8edb2f.8-arm64";
-      sha256 = "defe1e14bf84bd573ebbe2c96f015a9aed203e421df468705efcf42df8799a94";
-    };
-  };
-
-  srcInfo = sources.${arch} or (throw "Unsupported system: ${arch}");
+  source = builtins.fromJSON (builtins.readFile ./source.json);
 in
-stdenv.mkDerivation rec {
-  pname = "unifi-os-server-image";
-  inherit version;
+stdenvNoCC.mkDerivation (finalAttrs: {
+  pname = "unifi-os-server-installer";
+  inherit (source) version;
 
   src = fetchurl {
-    url = srcInfo.url;
-    sha256 = srcInfo.sha256;
+    inherit (source) url hash;
   };
 
-  nativeBuildInputs = [ unzip skopeo ];
+  dontUnpack = true;
+  nativeBuildInputs = [ coreutils gnugrep unzip ];
 
-  unpackPhase = "true";
+  installPhase = ''
+    runHook preInstall
+    install -Dm755 "$src" "$out/bin/unifi-os-server-installer"
 
-  buildPhase = ''
-    echo "Extracting image.tar from installer..."
-    unzip $src image.tar || [ $? -eq 1 ]
+    mapfile -t eocd_offsets < <(LC_ALL=C grep -aob $'PK\005\006' "$src" | cut -d: -f1)
+    payload=
+    for eocd in "''${eocd_offsets[@]}"; do
+      entries=$(od -An -j $((eocd + 10)) -N 2 -tu2 "$src" | tr -d ' ')
+      [[ "$entries" == 9 ]] || continue
+      cd_size=$(od -An -j $((eocd + 12)) -N 4 -tu4 "$src" | tr -d ' ')
+      cd_offset=$(od -An -j $((eocd + 16)) -N 4 -tu4 "$src" | tr -d ' ')
+      archive_start=$((eocd - cd_size - cd_offset))
+      archive_size=$((eocd + 22 - archive_start))
+      ((archive_start >= 0)) || continue
+      candidate="$TMPDIR/payload-$archive_start.zip"
+      dd if="$src" of="$candidate" bs=1M iflag=skip_bytes,count_bytes \
+        skip="$archive_start" count="$archive_size" status=none
+      if unzip -t "$candidate" image.tar >/dev/null 2>&1; then
+        payload=$candidate
+        break
+      fi
+    done
 
-    echo "Converting OCI archive image.tar to docker-archive..."
-    # The output is a single tarball representing the docker-archive
-    skopeo --tmpdir . --insecure-policy copy oci-archive:image.tar docker-archive:$out:unifi-os-server:${version}
+    if [[ -z "$payload" ]]; then
+      echo "could not locate installer payload containing image.tar" >&2
+      exit 1
+    fi
+
+    install -d "$out/share/unifi-os-server"
+    unzip -p "$payload" image.tar >"$out/share/unifi-os-server/image.tar"
+    chmod 0444 "$out/share/unifi-os-server/image.tar"
+    runHook postInstall
   '';
 
-  dontInstall = true;
-
-  meta = with lib; {
-    description = "Official UniFi OS Server container image, declarative package from Ubiquiti installer";
-    homepage = "https://ui.com/download";
-    license = licenses.unfree;
-    platforms = [ "x86_64-linux" "aarch64-linux" ];
+  passthru = {
+    inherit (source) imageReference imageId;
+    image = "${finalAttrs.finalPackage}/share/unifi-os-server/image.tar";
   };
-}
+
+  meta = {
+    description = "Official Ubiquiti UniFi OS Server installer and OCI image";
+    homepage = "https://www.ui.com/download/releases/unifi-os-server";
+    license = lib.licenses.unfree;
+    mainProgram = "unifi-os-server-installer";
+    platforms = [ "x86_64-linux" ];
+  };
+})
