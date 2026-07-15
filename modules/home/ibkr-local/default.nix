@@ -211,7 +211,14 @@ let
 
       jts_ini=${lib.escapeShellArg "${profile.jtsConfigDir}/jts.ini"}
       if [[ -f "$jts_ini" ]]; then
-        ${pkgs.gnugrep}/bin/grep -qx 'TrustedIPs=127.0.0.1' "$jts_ini" \
+        ${pkgs.gawk}/bin/awk '
+          { sub(/\r$/, "") }
+          /^TrustedIPs=/ {
+            trusted_ip_count++
+            trusted_ip_is_localhost_only = ($0 == "TrustedIPs=127.0.0.1")
+          }
+          END { exit !(trusted_ip_count == 1 && trusted_ip_is_localhost_only) }
+        ' "$jts_ini" \
           || { echo "Gateway API trust policy is not localhost-only: $jts_ini" >&2; exit 1; }
       elif [[ -e "$jts_ini" ]]; then
         echo "Gateway API trust policy is not a regular file: $jts_ini" >&2
