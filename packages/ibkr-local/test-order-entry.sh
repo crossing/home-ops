@@ -14,6 +14,7 @@ export IBKR_LOCAL_PROFILES="$test_root/config/profiles.json"
 export IBKR_LOCAL_XDG_CONFIG_HOME="$test_root/config"
 export FAKE_LOG="$test_root/upstream.log"
 export FAKE_MODE=success
+export FAKE_PREAMBLE=1
 
 mkdir -p "$XDG_RUNTIME_DIR" "$XDG_STATE_HOME" "$IBKR_LOCAL_CONFIG_DIR"
 
@@ -62,6 +63,10 @@ set -euo pipefail
 
 printf '%q ' "$@" >>"$FAKE_LOG"
 printf '\n' >>"$FAKE_LOG"
+
+if [[ "${FAKE_PREAMBLE:-0}" == "1" ]]; then
+  printf 'A new version 0.7.2 is available (current: 0.7.1). Run "ibkr update" to upgrade.\n'
+fi
 
 case " $* " in
   *' --preview '*)

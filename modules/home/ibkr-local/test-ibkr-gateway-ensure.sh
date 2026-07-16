@@ -46,10 +46,22 @@ cat >"$fake_bin/ibkr-local" <<'EOF'
 set -euo pipefail
 [[ $# -eq 3 && $1 == connect && $2 == --profile ]] || exit 2
 profile=$3
+printf 'ibkr-local %s\n' "$profile" >>"$IBKR_TEST_CLI_LOG"
 printf 'ready %s\n' "$profile" >>"$IBKR_TEST_EVENT_LOG"
 [[ -f "$IBKR_TEST_STATE_DIR/$profile.ready" ]]
 EOF
 chmod +x "$fake_bin/ibkr-local"
+
+cat >"$fake_bin/ibkr" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+[[ $# -eq 3 && $1 == connect && $2 == --profile ]] || exit 2
+profile=$3
+printf 'ibkr %s\n' "$profile" >>"$IBKR_TEST_CLI_LOG"
+printf 'ready %s\n' "$profile" >>"$IBKR_TEST_EVENT_LOG"
+[[ -f "$IBKR_TEST_STATE_DIR/$profile.ready" ]]
+EOF
+chmod +x "$fake_bin/ibkr"
 
 for profile in main-live pension-live; do
   cat >"$fake_bin/ibkr-gateway-reauth-$profile" <<EOF
@@ -75,6 +87,7 @@ run_case() {
   : >"$case_dir/pension-live.ready"
   : >"$case_dir/helpers.log"
   : >"$case_dir/events.log"
+  : >"$case_dir/cli.log"
   if [[ -n "$failed_profile" ]]; then
     : >"$case_dir/$failed_profile.fail"
   fi
@@ -87,6 +100,7 @@ run_case() {
     IBKR_TEST_STATE_DIR="$case_dir" \
     IBKR_TEST_HELPER_LOG="$case_dir/helpers.log" \
     IBKR_TEST_EVENT_LOG="$case_dir/events.log" \
+    IBKR_TEST_CLI_LOG="$case_dir/cli.log" \
     IBKR_GATEWAY_READY_TIMEOUT=1 \
     IBKR_GATEWAY_READY_INTERVAL=1 \
     bash "$coordinator" main-live pension-live \
@@ -113,11 +127,24 @@ assert_events() {
     || fail "unexpected events: expected [$expected], got [$actual]"
 }
 
+assert_cli() {
+  local expected=$1 actual
+  actual=$(<"$case_dir/cli.log")
+  [[ "$actual" == "$expected" ]] \
+    || fail "unexpected CLI calls: expected [$expected], got [$actual]"
+}
+
 assert_no_event() {
   local pattern=$1
   if grep -Eq -- "$pattern" "$case_dir/events.log"; then
     fail "unexpected event matching [$pattern]: $(<"$case_dir/events.log")"
   fi
+}
+
+assert_stderr_contains() {
+  local text=$1
+  grep -Fq -- "$text" "$case_dir/stderr" \
+    || fail "stderr missing [$text]: $(<"$case_dir/stderr")"
 }
 
 assert_service() {
@@ -131,6 +158,7 @@ run_case both_active active active
 assert_exit 0
 assert_helpers ""
 assert_events $'ready main-live\nready pension-live'
+assert_cli $'ibkr main-live\nibkr pension-live'
 
 run_case pension_missing active inactive
 assert_exit 0
@@ -160,6 +188,11 @@ assert_no_event 'pension-live'
 assert_no_event 'stop main-live'
 assert_service main-live active
 assert_service pension-live inactive
+assert_stderr_contains 'main-live: Gateway may be waiting for headless Second Factor Authentication'
+assert_stderr_contains 'systemctl --user status ibkr-gateway-main-live.service'
+assert_stderr_contains 'Log in with Challenge/Response'
+assert_stderr_contains 'Services -> Authenticate'
+assert_stderr_contains 'do not restart while a challenge is pending'
 
 run_case main_started_unready inactive inactive "" main-live
 assert_exit 1

@@ -110,12 +110,12 @@ cmd_order_prepare() {
   jq -e --arg order_type "$order_type" '.orderEntry.allowedOrderTypes | index($order_type) != null' \
     <<<"$policy" >/dev/null || die "order type is not enabled for profile: $profile"
 
-  local ibkr_profile mode ttl preview
+  local ibkr_profile mode ttl preview preview_output
   ibkr_profile=$(jq -r '.ibkrProfile' <<<"$policy")
   mode=$(jq -r '.mode' <<<"$policy")
   ttl=$(jq -r '.orderEntry.ticketTtlSeconds' <<<"$policy")
 
-  if ! preview=$(
+  if ! preview_output=$(
     XDG_CONFIG_HOME="$ibkr_xdg_home" "$IBKR_UPSTREAM" \
       "$side" "$symbol" "$quantity" \
       --profile "$ibkr_profile" --account "$account" \
@@ -123,9 +123,12 @@ cmd_order_prepare() {
       --type "$order_type" --limit "$limit_price" --tif "$tif" \
       --preview --json
   ); then
-    printf '%s\n' "$preview" >&2
+    printf '%s\n' "$preview_output" >&2
     return 1
   fi
+
+  preview=$(order_response_json "$preview_output")
+  [[ "$preview" != "null" ]] || die "IBKR preview returned invalid JSON"
 
   jq -e --arg account "$account" '
     .preview_only == true and .selected_account == $account
@@ -241,8 +244,10 @@ order_write_audit() {
 
 order_response_json() {
   local output=$1
-  if jq -e 'type == "object"' <<<"$output" >/dev/null 2>&1; then
-    jq -c . <<<"$output"
+  local payload
+  payload=$(awk 'found || /^[[:space:]]*\{/ { found=1; print }' <<<"$output")
+  if jq -e 'type == "object"' <<<"$payload" >/dev/null 2>&1; then
+    jq -c . <<<"$payload"
   else
     printf 'null\n'
   fi
