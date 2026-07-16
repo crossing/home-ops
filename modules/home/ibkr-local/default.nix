@@ -173,20 +173,22 @@ let
   configJson = {
     defaultProfile = cfg.defaultProfile;
     accounts = cfg.accounts;
-    profiles = lib.mapAttrs (_: profile: {
-      inherit (profile)
-        ibkrProfile
-        host
-        port
-        clientId
-        mode
-        jtsConfigDir
-        logDir
-        gatewayDir
-        accounts
-        orderEntry
-        ;
-    }) cfg.profiles;
+    profiles = lib.mapAttrs
+      (_: profile: {
+        inherit (profile)
+          ibkrProfile
+          host
+          port
+          clientId
+          mode
+          jtsConfigDir
+          logDir
+          gatewayDir
+          accounts
+          orderEntry
+          ;
+      })
+      cfg.profiles;
   };
 
   profilesJsonFile = pkgs.writeText "ibkr-local-profiles.json" (builtins.toJSON configJson);

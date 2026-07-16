@@ -28,6 +28,7 @@ lib.mkIf config.profiles.personal.enable {
           cash = [ ];
           isa = [ ];
         };
+        orderEntry.enable = true;
       };
 
       main-live = {
