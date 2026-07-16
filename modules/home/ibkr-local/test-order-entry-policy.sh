@@ -10,7 +10,7 @@ jq -e '."main-paper".orderEntry == {
   allowedOrderTypes: ["LMT"],
   allowOutsideRth: false
 }' <<<"$json" >/dev/null
-jq -e '."main-live".orderEntry.enable == false' <<<"$json" >/dev/null
-jq -e '."pension-live".orderEntry.enable == false' <<<"$json" >/dev/null
+jq -e '."main-live".orderEntry.enable == true' <<<"$json" >/dev/null
+jq -e '."pension-live".orderEntry.enable == true' <<<"$json" >/dev/null
 
-printf 'PASS: paper order entry enabled while live profiles fail closed\n'
+printf 'PASS: guarded order entry enabled for paper and live profiles\n'
