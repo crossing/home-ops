@@ -28,6 +28,7 @@ lib.mkIf config.profiles.personal.enable {
           cash = [ ];
           isa = [ ];
         };
+        orderEntry.enable = true;
       };
 
       main-live = {
@@ -41,6 +42,7 @@ lib.mkIf config.profiles.personal.enable {
           cash = [ ];
           isa = [ ];
         };
+        orderEntry.enable = true;
       };
 
       pension-paper = {
@@ -59,6 +61,7 @@ lib.mkIf config.profiles.personal.enable {
         jtsConfigDir = "${baseConfig}/jts/pension-live";
         logDir = "${baseState}/pension-live";
         accounts.pension = [ ];
+        orderEntry.enable = true;
       };
     };
 

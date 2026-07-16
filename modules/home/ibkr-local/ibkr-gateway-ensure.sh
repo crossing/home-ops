@@ -17,18 +17,38 @@ if [[ ! "$ready_interval" =~ ^[1-9][0-9]*$ ]]; then
   echo "IBKR_GATEWAY_READY_INTERVAL must be a positive integer" >&2
   exit 2
 fi
-if ! command -v ibkr-local >/dev/null 2>&1; then
-  echo "ibkr-local: command not found" >&2
+if command -v ibkr >/dev/null 2>&1; then
+  ibkr_cli=ibkr
+elif command -v ibkr-local >/dev/null 2>&1; then
+  ibkr_cli=ibkr-local
+else
+  echo "ibkr: command not found (ibkr-local compatibility command also unavailable)" >&2
   exit 1
 fi
 
+print_auth_diagnostics() {
+  local profile=$1 service=$2
+  printf '%s: Gateway may be waiting for headless Second Factor Authentication\n' "$profile" >&2
+  printf '%s: diagnose service: systemctl --user status %s\n' "$profile" "$service" >&2
+  printf "%s: diagnose authentication: journalctl --user -u %s --since '-10 min'\n" \
+    "$profile" "$service" >&2
+  printf '%s: if Gateway shows Notification sent but no phone prompt arrives, select Log in with Challenge/Response; in IBKR Mobile use Services -> Authenticate and submit the generated response\n' \
+    "$profile" >&2
+  printf '%s: do not restart while a challenge is pending; review the bootstrap-ibkr-gateway skill and this coordinator after IB Gateway or IBC upgrades\n' \
+    "$profile" >&2
+}
+
 wait_until_ready() {
-  local profile=$1 deadline
+  local profile=$1 service=$2 deadline diagnosed=0
   deadline=$((SECONDS + ready_timeout))
 
   while true; do
-    if ibkr-local connect --profile "$profile" >/dev/null 2>&1; then
+    if "$ibkr_cli" connect --profile "$profile" >/dev/null 2>&1; then
       return 0
+    fi
+    if ((diagnosed == 0)); then
+      print_auth_diagnostics "$profile" "$service"
+      diagnosed=1
     fi
     if ((SECONDS >= deadline)); then
       return 1
@@ -70,7 +90,7 @@ for profile in "$@"; do
   fi
 
   printf '%s: waiting for API readiness\n' "$profile" >&2
-  if wait_until_ready "$profile"; then
+  if wait_until_ready "$profile" "$service"; then
     printf '%s: API ready\n' "$profile" >&2
   else
     printf '%s: API readiness timed out after %s seconds\n' "$profile" "$ready_timeout" >&2
