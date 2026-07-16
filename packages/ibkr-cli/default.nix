@@ -22,8 +22,13 @@ let
     cp ${./uv.lock} $out/uv.lock
   '';
 
+  patched-src-with-lock = pkgs.applyPatches {
+    src = src-with-lock;
+    patches = [ ./patches/position-data.patch ];
+  };
+
   workspace = uv2nix.lib.workspace.loadWorkspace {
-    workspaceRoot = src-with-lock;
+    workspaceRoot = patched-src-with-lock;
   };
 
   overlay = workspace.mkPyprojectOverlay {

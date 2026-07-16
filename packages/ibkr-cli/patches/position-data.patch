@@ -1,0 +1,80 @@
+--- a/src/ibkr_cli/ib_service.py
++++ b/src/ibkr_cli/ib_service.py
+@@ -70,0 +71,56 @@
++def _first_number(*values: object) -> Optional[float]:
++    for value in values:
++        normalized = _normalize_number(value)
++        if normalized is not None:
++            return normalized
++    return None
++
++
++def _position_market_data(
++    ib: object, positions: Sequence[object], timeout: float
++) -> Dict[Tuple[str, int], Dict[str, Optional[float]]]:
++    """Load read-only portfolio and per-contract P&L data for positions."""
++    accounts = sorted({str(position.account) for position in positions})
++    for account in accounts:
++        ib.reqAccountUpdates(account)
++
++    portfolio_by_key: Dict[Tuple[str, int], object] = {}
++    for item in ib.portfolio():
++        contract = item.contract
++        portfolio_by_key[(str(item.account), int(contract.conId))] = item
++
++    pnl_by_key: Dict[Tuple[str, int], object] = {}
++    subscriptions: List[Tuple[str, int]] = []
++    try:
++        for position in positions:
++            key = (str(position.account), int(position.contract.conId))
++            try:
++                pnl_by_key[key] = ib.reqPnLSingle(position.account, "", position.contract.conId)
++                subscriptions.append(key)
++            except Exception:
++                continue
++        if subscriptions:
++            ib.sleep(min(max(timeout / 2, 0.1), 1.0))
++    finally:
++        for account, con_id in subscriptions:
++            ib.cancelPnLSingle(account, "", con_id)
++
++    result: Dict[Tuple[str, int], Dict[str, Optional[float]]] = {}
++    for position in positions:
++        key = (str(position.account), int(position.contract.conId))
++        portfolio = portfolio_by_key.get(key)
++        pnl = pnl_by_key.get(key)
++        result[key] = {
++            "market_price": _first_number(getattr(portfolio, "marketPrice", None)),
++            "market_value": _first_number(
++                getattr(pnl, "value", None), getattr(portfolio, "marketValue", None)
++            ),
++            "unrealized_pnl": _first_number(
++                getattr(pnl, "unrealizedPnL", None), getattr(portfolio, "unrealizedPNL", None)
++            ),
++            "realized_pnl": _first_number(
++                getattr(pnl, "realizedPnL", None), getattr(portfolio, "realizedPNL", None)
++            ),
++            "daily_pnl": _first_number(getattr(pnl, "dailyPnL", None)),
++        }
++    return result
+@@ -260,0 +261,2 @@
++        market_data = _position_market_data(ib, positions, timeout)
++
+@@ -264,0 +265,1 @@
++            metrics = market_data[(str(position.account), int(contract.conId))]
+@@ -275,0 +276,1 @@
++                    **metrics,
+--- a/src/ibkr_cli/app.py
++++ b/src/ibkr_cli/app.py
+@@ -287,0 +288,5 @@
++    table.add_column("Market Price", justify="right")
++    table.add_column("Market Value", justify="right")
++    table.add_column("Unrealized PnL", justify="right")
++    table.add_column("Realized PnL", justify="right")
++    table.add_column("Daily PnL", justify="right")
+@@ -297,0 +298,5 @@
++            "" if row["market_price"] is None else str(row["market_price"]),
++            "" if row["market_value"] is None else str(row["market_value"]),
++            "" if row["unrealized_pnl"] is None else str(row["unrealized_pnl"]),
++            "" if row["realized_pnl"] is None else str(row["realized_pnl"]),
++            "" if row["daily_pnl"] is None else str(row["daily_pnl"]),
