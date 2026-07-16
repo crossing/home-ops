@@ -62,6 +62,34 @@ let
         default = { };
         description = "Profile-specific account groups used by ibkr-local filters.";
       };
+
+      orderEntry = lib.mkOption {
+        type = lib.types.submodule {
+          options = {
+            enable = lib.mkEnableOption "guarded order submission for this profile";
+
+            ticketTtlSeconds = lib.mkOption {
+              type = lib.types.ints.between 30 600;
+              default = 120;
+              description = "Lifetime of a prepared order ticket in seconds.";
+            };
+
+            allowedOrderTypes = lib.mkOption {
+              type = lib.types.listOf (lib.types.enum [ "LMT" ]);
+              default = [ "LMT" ];
+              description = "Order types accepted by guarded order entry.";
+            };
+
+            allowOutsideRth = lib.mkOption {
+              type = lib.types.bool;
+              default = false;
+              description = "Whether guarded orders may execute outside regular trading hours.";
+            };
+          };
+        };
+        default = { };
+        description = "Fail-closed guarded order-entry policy.";
+      };
     };
   });
 
@@ -156,6 +184,7 @@ let
         logDir
         gatewayDir
         accounts
+        orderEntry
         ;
     }) cfg.profiles;
   };
