@@ -115,8 +115,10 @@ random identifier and canonical JSON containing:
 - A checksum over the canonical order payload to detect corruption or editing.
 
 Prepared tickets live under
-`$XDG_RUNTIME_DIR/ibkr-local/order-tickets/`. The directory is mode `0700` and
-ticket files are mode `0600`. A ticket expires after 120 seconds by default.
+`$XDG_RUNTIME_DIR/ibkr-local/order-tickets/prepared/`. A sibling `claimed/`
+directory provides the same-filesystem atomic submission claim. Both
+directories are mode `0700` and ticket files are mode `0600`. A ticket expires
+after 120 seconds by default.
 Ticket identifiers and checksums protect against accidental misuse, not against
 the local account owner, who already controls the CLI and its configuration.
 
@@ -132,9 +134,12 @@ prepared -> submitting -> submitted
 
 Before broker contact, `order-submit` verifies the ticket schema, checksum,
 expiry, exact confirmation, current profile policy, live mode, explicit account,
-and allowed order type. It then atomically moves the ticket out of `prepared`
-and into durable audit state. Only the process that wins this transition may
-invoke upstream `--submit`; concurrent and repeated attempts fail locally.
+and allowed order type. It then atomically renames the ticket from `prepared`
+to `claimed` under the same runtime parent. Only the process that wins this
+transition may create the durable audit record and invoke upstream `--submit`;
+concurrent and repeated attempts fail locally. The claimed ticket is copied to
+durable audit state before broker contact, avoiding any assumption that runtime
+and state directories share a filesystem.
 
 Every broker-contacting submission consumes its ticket. A nonzero exit,
 timeout, signal, malformed response, or lost connection becomes
