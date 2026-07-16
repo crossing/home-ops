@@ -30,6 +30,8 @@ Commands:
   dividends                JSON Flex dividends/cash transactions
   order-preview buy|sell   What-if order preview only; --submit is blocked
   order-prepare buy|sell   Preview and create a short-lived guarded order ticket
+  order-submit TICKET      Submit one prepared ticket with matching confirmation
+  order-cancel ORDER_ID    Cancel one order with explicit profile/account/confirmation
   config path|show         Print local/upstream config paths or local config
   gateway                  Launch IB Gateway for a local profile
   ibc-config               Render ephemeral IBC config from safe-op secret refs
@@ -417,6 +419,12 @@ main() {
       ;;
     order-prepare)
       cmd_order_prepare "$@"
+      ;;
+    order-submit)
+      cmd_order_submit "$@"
+      ;;
+    order-cancel)
+      cmd_order_cancel "$@"
       ;;
     order-preview)
       parse_common "$@"; require_config

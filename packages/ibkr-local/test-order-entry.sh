@@ -90,6 +90,26 @@ case " $* " in
 }
 JSON
     ;;
+  *' --submit '*|*' orders cancel '*)
+    case "${FAKE_MODE:-success}" in
+      success)
+        printf '{"operation":"submit","status":"PreSubmitted","order_id":42,"selected_account":"TEST123"}\n'
+        ;;
+      reject)
+        printf '{"error":"broker rejected test order"}\n'
+        exit 1
+        ;;
+      timeout)
+        exit 124
+        ;;
+      malformed)
+        printf 'not-json\n'
+        ;;
+      *)
+        exit 3
+        ;;
+    esac
+    ;;
   *)
     printf '{"status":"Submitted","order_id":42,"selected_account":"TEST123"}\n'
     ;;
@@ -113,6 +133,25 @@ expect_fail() {
     printf 'FAIL: command unexpectedly succeeded: %s\n' "$*" >&2
     return 1
   fi
+}
+
+prepare_ticket() {
+  run_cli order-prepare buy AAPL 1 \
+    --profile main-live --account TEST123 --type LMT --limit 100 \
+    | jq -er '.ticketId'
+}
+
+rewrite_ticket() {
+  local ticket_id=$1 filter=$2
+  local ticket="$XDG_RUNTIME_DIR/ibkr-local/order-tickets/prepared/$ticket_id.json"
+  local body="$ticket.body" final="$ticket.final" checksum
+
+  jq "$filter | del(.checksum)" "$ticket" >"$body"
+  checksum=$(jq -cS 'del(.checksum)' "$body" | sha256sum | cut -d' ' -f1)
+  jq --arg checksum "$checksum" '. + {checksum: $checksum}' "$body" >"$final"
+  chmod 600 "$final"
+  mv "$final" "$ticket"
+  rm -f "$body"
 }
 
 run_prepare_tests() {
@@ -147,9 +186,89 @@ run_prepare_tests() {
   printf 'PASS: guarded order preparation\n'
 }
 
+run_lifecycle_tests() {
+  : >"$FAKE_LOG"
+  export FAKE_MODE=success
+
+  ticket_id=$(prepare_ticket)
+  expect_fail order-submit "$ticket_id" --confirm wrong
+  [[ "$(grep -c -- '--submit' "$FAKE_LOG" || true)" == 0 ]]
+
+  expired_ticket=$(prepare_ticket)
+  rewrite_ticket "$expired_ticket" '.expiresAt = 0'
+  expect_fail order-submit "$expired_ticket" --confirm "$expired_ticket"
+  [[ "$(grep -c -- '--submit' "$FAKE_LOG" || true)" == 0 ]]
+
+  tampered_ticket=$(prepare_ticket)
+  ticket_path="$XDG_RUNTIME_DIR/ibkr-local/order-tickets/prepared/$tampered_ticket.json"
+  jq '.account = "EDITED"' "$ticket_path" >"$ticket_path.edited"
+  mv "$ticket_path.edited" "$ticket_path"
+  expect_fail order-submit "$tampered_ticket" --confirm "$tampered_ticket"
+  [[ "$(grep -c -- '--submit' "$FAKE_LOG" || true)" == 0 ]]
+
+  run_cli order-submit "$ticket_id" --confirm "$ticket_id" >/dev/null
+  [[ "$(grep -c -- '--submit' "$FAKE_LOG")" == 1 ]]
+  expect_fail order-submit "$ticket_id" --confirm "$ticket_id"
+  [[ "$(grep -c -- '--submit' "$FAKE_LOG")" == 1 ]]
+  jq -e '.state == "submitted"' "$XDG_STATE_HOME/ibkr-local/orders/$ticket_id.json" >/dev/null
+
+  timeout_ticket=$(prepare_ticket)
+  export FAKE_MODE=timeout
+  expect_fail order-submit "$timeout_ticket" --confirm "$timeout_ticket"
+  jq -e '.state == "attempted-unknown"' \
+    "$XDG_STATE_HOME/ibkr-local/orders/$timeout_ticket.json" >/dev/null
+  export FAKE_MODE=success
+  expect_fail order-submit "$timeout_ticket" --confirm "$timeout_ticket"
+
+  concurrent_ticket=$(prepare_ticket)
+  before=$(grep -c -- '--submit' "$FAKE_LOG")
+  set +e
+  run_cli order-submit "$concurrent_ticket" --confirm "$concurrent_ticket" \
+    >"$test_root/concurrent-1.out" 2>"$test_root/concurrent-1.err" &
+  pid1=$!
+  run_cli order-submit "$concurrent_ticket" --confirm "$concurrent_ticket" \
+    >"$test_root/concurrent-2.out" 2>"$test_root/concurrent-2.err" &
+  pid2=$!
+  wait "$pid1"
+  status1=$?
+  wait "$pid2"
+  status2=$?
+  set -e
+  [[ "$status1" == 0 && "$status2" != 0 || "$status1" != 0 && "$status2" == 0 ]]
+  after=$(grep -c -- '--submit' "$FAKE_LOG")
+  [[ $((after - before)) == 1 ]]
+
+  expect_fail order-cancel 42 --profile main-live --account TEST123 --confirm 41
+  cancel_json=$(run_cli order-cancel 42 --profile main-live --account TEST123 --confirm 42)
+  cancel_id=$(jq -er '.auditId' <<<"$cancel_json")
+  grep -q 'orders cancel 42.*--account TEST123' "$FAKE_LOG"
+  jq -e '.state == "submitted" and .cancellation.orderId == 42' \
+    "$XDG_STATE_HOME/ibkr-local/orders/$cancel_id.json" >/dev/null
+
+  export FAKE_MODE=timeout
+  expect_fail order-cancel 43 --profile main-live --account TEST123 --confirm 43
+  jq -e 'select(.state == "attempted-unknown" and .cancellation.orderId == 43)' \
+    "$XDG_STATE_HOME"/ibkr-local/orders/cancel-*.json >/dev/null
+  export FAKE_MODE=success
+
+  if rg -n 'password|usernameRef|passwordRef|op://' "$XDG_STATE_HOME/ibkr-local/orders"; then
+    echo 'FAIL: audit files contain protected configuration' >&2
+    return 1
+  fi
+
+  printf 'PASS: guarded order submit and cancel lifecycle\n'
+}
+
 case "${1:-all}" in
-  prepare|all)
+  prepare)
     run_prepare_tests
+    ;;
+  lifecycle)
+    run_lifecycle_tests
+    ;;
+  all)
+    run_prepare_tests
+    run_lifecycle_tests
     ;;
   *)
     echo "unknown test group: $1" >&2
