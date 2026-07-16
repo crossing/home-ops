@@ -29,6 +29,7 @@ Commands:
   transfers                JSON Flex transfers
   dividends                JSON Flex dividends/cash transactions
   order-preview buy|sell   What-if order preview only; --submit is blocked
+  order-prepare buy|sell   Preview and create a short-lived guarded order ticket
   config path|show         Print local/upstream config paths or local config
   gateway                  Launch IB Gateway for a local profile
   ibc-config               Render ephemeral IBC config from safe-op secret refs
@@ -413,6 +414,9 @@ main() {
     dividends)
       parse_common "$@"; require_config
       run_flex_json "$profile" "$group" "$account" "$raw" dividends "${remaining[@]}"
+      ;;
+    order-prepare)
+      cmd_order_prepare "$@"
       ;;
     order-preview)
       parse_common "$@"; require_config
