@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-readonly APP_NAME="ibkr-local"
+readonly APP_NAME="ibkr"
 
 config_home="${XDG_CONFIG_HOME:-$HOME/.config}"
 state_home="${XDG_STATE_HOME:-$HOME/.local/state}"
@@ -11,7 +11,7 @@ ibkr_xdg_home="${IBKR_LOCAL_XDG_CONFIG_HOME:-$local_config_dir}"
 
 usage() {
   cat <<'USAGE'
-Usage: ibkr-local <command> [options]
+Usage: ibkr <command> [options]
 
 Profile options:
   -p, --profile NAME       Local runtime profile (default from profiles.json)
@@ -34,9 +34,9 @@ Commands:
   ibc-config               Render ephemeral IBC config from safe-op secret refs
 
 Examples:
-  ibkr-local positions --profile main-paper --group isa
-  ibkr-local balances --profile main-live --account U1234567
-  ibkr-local order-preview buy AAPL 1 --profile main-paper --limit 100 --json
+  ibkr positions --profile main-paper --group isa
+  ibkr balances --profile main-live --account U1234567
+  ibkr order-preview buy AAPL 1 --profile main-paper --limit 100 --json
 USAGE
 }
 
@@ -109,7 +109,7 @@ safe_args() {
   for arg in "$@"; do
     case "$arg" in
       --submit|submit|cancel|modify)
-        die "live order mutation is blocked in v1; use ibkr-local order-preview for what-if only"
+        die "live order mutation is blocked; use ibkr order-preview for what-if only"
         ;;
     esac
   done
@@ -168,7 +168,7 @@ run_ibkr_json() {
   ib_profile=$(ibkr_profile_name "$profile")
 
   local output
-  if ! output=$(XDG_CONFIG_HOME="$ibkr_xdg_home" ibkr "$@" --profile "$ib_profile" --json); then
+  if ! output=$(XDG_CONFIG_HOME="$ibkr_xdg_home" "${IBKR_UPSTREAM:?IBKR_UPSTREAM is required}" "$@" --profile "$ib_profile" --json); then
     printf '%s\n' "$output" >&2
     return 1
   fi
@@ -185,7 +185,7 @@ run_flex_json() {
   shift 4
 
   local output
-  if ! output=$(XDG_CONFIG_HOME="$ibkr_xdg_home" ibkr "$@" --json); then
+  if ! output=$(XDG_CONFIG_HOME="$ibkr_xdg_home" "${IBKR_UPSTREAM:?IBKR_UPSTREAM is required}" "$@" --json); then
     printf '%s\n' "$output" >&2
     return 1
   fi

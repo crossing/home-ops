@@ -5,28 +5,37 @@ let
   ibkrCli = localPackages."ibkr-cli";
   ibgatewayPackage = localPackages.ibgateway;
 
-  ibkrLocal = pkgs.writeShellApplication {
-    name = "ibkr-local";
+  ibkr = pkgs.writeShellApplication {
+    name = "ibkr";
     runtimeInputs = [
-      ibkrCli
       ibgatewayPackage
       pkgs.coreutils
       pkgs.gnugrep
       pkgs.gnused
       pkgs.jq
     ];
-    text = builtins.readFile ./ibkr-local.sh;
+    text = ''
+      export IBKR_UPSTREAM=${lib.escapeShellArg "${ibkrCli}/bin/ibkr"}
+      ${builtins.readFile ./order-entry.sh}
+      ${builtins.readFile ./ibkr-local.sh}
+    '';
   };
+
+  compatibility = pkgs.runCommand "ibkr-local-compat" { } ''
+    mkdir -p "$out/bin"
+    ln -s ${ibkr}/bin/ibkr "$out/bin/ibkr-local"
+  '';
 in
 pkgs.symlinkJoin {
   name = "ibkr-local";
   paths = [
-    ibkrLocal
+    ibkr
+    compatibility
     ibgatewayPackage
   ];
 
   meta = {
-    description = "Local Interactive Brokers runtime wrappers around ibkr-cli and IB Gateway";
+    description = "Guarded local Interactive Brokers CLI and Gateway runtime";
     platforms = lib.platforms.linux;
   };
 }
