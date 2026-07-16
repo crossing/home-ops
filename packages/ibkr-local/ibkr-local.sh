@@ -22,7 +22,7 @@ Profile options:
 Commands:
   doctor                   JSON connectivity/config diagnostic
   connect                  JSON TCP/API connectivity test
-  positions                JSON positions
+  positions                JSON positions with market value and P&L fields
   balances                 JSON account summary
   executions               JSON order executions
   flex-trades              JSON Flex trades
@@ -165,22 +165,45 @@ ibkr_profile_name() {
 
 run_ibkr_json() {
   local profile=$1 group=$2 account=$3 raw=$4
-  shift 4
+  local forward_account=$5
+  shift 5
 
   local ib_profile
   ib_profile=$(ibkr_profile_name "$profile")
 
+  local -a command=("$@")
+  if [[ "$forward_account" == "1" && -n "$account" ]]; then
+    command+=(--account "$account")
+  fi
+
   local output
-  if ! output=$(XDG_CONFIG_HOME="$ibkr_xdg_home" "${IBKR_UPSTREAM:?IBKR_UPSTREAM is required}" "$@" --profile "$ib_profile" --json); then
+  if ! output=$(XDG_CONFIG_HOME="$ibkr_xdg_home" "${IBKR_UPSTREAM:?IBKR_UPSTREAM is required}" "${command[@]}" --profile "$ib_profile" --json); then
+    printf '%s\n' "$output" >&2
+    return 1
+  fi
+
+  local json_output
+  if ! json_output=$(extract_json_payload "$output"); then
     printf '%s\n' "$output" >&2
     return 1
   fi
 
   if [[ "$raw" == "1" ]]; then
-    printf '%s\n' "$output"
+    printf '%s\n' "$json_output"
   else
-    printf '%s\n' "$output" | filter_accounts "$profile" "$group" "$account"
+    printf '%s\n' "$json_output" | filter_accounts "$profile" "$group" "$account"
   fi
+}
+
+extract_json_payload() {
+  local output=$1 payload
+  payload=$(printf '%s\n' "$output" | awk '
+    !started && ($0 ~ /^[[:space:]]*\{/ || $0 ~ /^[[:space:]]*\[/) { started = 1 }
+    started { print }
+  ')
+  [[ -n "$payload" ]] || return 1
+  jq -e . >/dev/null <<<"$payload" || return 1
+  jq -c . <<<"$payload"
 }
 
 run_flex_json() {
@@ -193,10 +216,16 @@ run_flex_json() {
     return 1
   fi
 
+  local json_output
+  if ! json_output=$(extract_json_payload "$output"); then
+    printf '%s\n' "$output" >&2
+    return 1
+  fi
+
   if [[ "$raw" == "1" ]]; then
-    printf '%s\n' "$output"
+    printf '%s\n' "$json_output"
   else
-    printf '%s\n' "$output" | filter_accounts "$profile" "$group" "$account"
+    printf '%s\n' "$json_output" | filter_accounts "$profile" "$group" "$account"
   fi
 }
 
@@ -387,23 +416,23 @@ main() {
       ;;
     doctor)
       parse_common "$@"; require_config
-      run_ibkr_json "$profile" "$group" "$account" "$raw" doctor
+      run_ibkr_json "$profile" "$group" "$account" "$raw" 0 doctor
       ;;
     connect)
       parse_common "$@"; require_config
-      run_ibkr_json "$profile" "$group" "$account" "$raw" connect test
+      run_ibkr_json "$profile" "$group" "$account" "$raw" 0 connect test
       ;;
     positions)
       parse_common "$@"; require_config
-      run_ibkr_json "$profile" "$group" "$account" "$raw" positions "${remaining[@]}"
+      run_ibkr_json "$profile" "$group" "$account" "$raw" 1 positions "${remaining[@]}"
       ;;
     balances)
       parse_common "$@"; require_config
-      run_ibkr_json "$profile" "$group" "$account" "$raw" account summary "${remaining[@]}"
+      run_ibkr_json "$profile" "$group" "$account" "$raw" 1 account summary "${remaining[@]}"
       ;;
     executions)
       parse_common "$@"; require_config
-      run_ibkr_json "$profile" "$group" "$account" "$raw" orders executions "${remaining[@]}"
+      run_ibkr_json "$profile" "$group" "$account" "$raw" 1 orders executions "${remaining[@]}"
       ;;
     flex-trades)
       parse_common "$@"; require_config
@@ -438,7 +467,7 @@ main() {
       if [[ -n "$account" ]]; then
         order_args+=(--account "$account")
       fi
-      run_ibkr_json "$profile" "$group" "$account" "$raw" "${order_args[@]}"
+      run_ibkr_json "$profile" "$group" "$account" "$raw" 0 "${order_args[@]}"
       ;;
     gateway)
       cmd_gateway "$@"

@@ -10,6 +10,7 @@ let
     runtimeInputs = [
       ibgatewayPackage
       pkgs.coreutils
+      pkgs.gawk
       pkgs.gnugrep
       pkgs.gnused
       pkgs.jq
