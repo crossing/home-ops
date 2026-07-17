@@ -389,7 +389,7 @@ cmd_ibc_config() {
     fi
     printf 'ReloginAfterSecondFactorAuthenticationTimeout=no\n'
     printf 'SecondFactorAuthenticationExitInterval=60\n'
-    printf 'ExistingSessionDetectedAction=secondary\n'
+    printf 'ExistingSessionDetectedAction=primaryoverride\n'
     printf 'AcceptIncomingConnectionAction=reject\n'
   } > "$config_path"
   username=""
