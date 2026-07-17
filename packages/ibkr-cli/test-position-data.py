@@ -1,4 +1,5 @@
 import math
+import secrets
 import unittest
 from contextlib import nullcontext
 from types import SimpleNamespace
@@ -80,8 +81,13 @@ class FakeIB:
             ),
         }
         self.account_update_requests = []
+        self.account_update_cancelled = []
         self.pnl_requests = []
         self.cancelled = []
+        self.sleep_calls = []
+        self.fail_pnl_accounts = set()
+        self.fail_sleep = False
+        self.timeout_account_updates = False
 
     def managedAccounts(self):
         return self.accounts
@@ -91,6 +97,14 @@ class FakeIB:
 
     def reqAccountUpdates(self, account):
         self.account_update_requests.append(account)
+        if self.timeout_account_updates:
+            self.seen_request_timeout = getattr(self, "RequestTimeout", None)
+            if getattr(self, "RequestTimeout", 0) <= 0:
+                raise AssertionError("account update request was not bounded")
+            raise TimeoutError("account update request timed out")
+
+    def cancelAccountUpdates(self, account):
+        self.account_update_cancelled.append(account)
 
     def portfolio(self, account=""):
         if account:
@@ -99,6 +113,8 @@ class FakeIB:
 
     def reqPnLSingle(self, account, model_code, con_id):
         self.pnl_requests.append((account, model_code, con_id))
+        if account in self.fail_pnl_accounts:
+            raise RuntimeError("P&L request failed")
         return self.pnl_rows[(account, con_id)]
 
     def pnlSingle(self, account="", modelCode="", conId=0):
@@ -106,10 +122,89 @@ class FakeIB:
         return [] if row is None else [row]
 
     def sleep(self, _seconds):
+        self.sleep_calls.append(_seconds)
+        if self.fail_sleep:
+            raise TimeoutError("P&L request timed out")
         return True
 
     def cancelPnLSingle(self, account, model_code, con_id):
         self.cancelled.append((account, model_code, con_id))
+
+
+class SingleAccountUpdateIB(FakeIB):
+    def __init__(self):
+        super().__init__()
+        self.active_account = None
+
+    def reqAccountUpdates(self, account):
+        if self.active_account is not None:
+            raise AssertionError("account update subscriptions must not overlap")
+        super().reqAccountUpdates(account)
+        self.active_account = account
+
+    def cancelAccountUpdates(self, account):
+        super().cancelAccountUpdates(account)
+        self.active_account = None
+
+
+class FakeEvent:
+    def __init__(self):
+        self.listeners = []
+
+    def connect(self, listener):
+        self.listeners.append(listener)
+
+    def disconnect(self, listener):
+        self.listeners.remove(listener)
+
+    def emit(self, *args):
+        for listener in list(self.listeners):
+            listener(*args)
+
+
+class SessionIB(FakeIB):
+    instances = []
+    collision_ids = set()
+    connection_error = None
+    timeout_account_updates = False
+
+    def __init__(self):
+        super().__init__()
+        self.connected = False
+        self.connect_calls = []
+        self.disconnect_calls = 0
+        self.seen_request_timeout = None
+        self.timeout_account_updates = type(self).timeout_account_updates
+        self.errorEvent = FakeEvent()
+        type(self).instances.append(self)
+
+    def connect(self, host, port, clientId, timeout, readonly, fetchFields):
+        self.connect_calls.append(
+            {
+                "host": host,
+                "port": port,
+                "client_id": clientId,
+                "timeout": timeout,
+                "readonly": readonly,
+                "fetch_fields": fetchFields,
+            }
+        )
+        if clientId in type(self).collision_ids:
+            self.errorEvent.emit(0, 326, "client ID already in use", None)
+            raise ConnectionError("socket closed")
+        if type(self).connection_error is not None:
+            raise type(self).connection_error
+        self.connected = True
+
+    def isConnected(self):
+        return self.connected
+
+    def disconnect(self):
+        self.disconnect_calls += 1
+        self.connected = False
+
+    def accountSummary(self, account):
+        return [SimpleNamespace(account=account, tag="NetLiquidation", value="100", currency="GBP")]
 
 
 class PositionDataTests(unittest.TestCase):
@@ -128,8 +223,108 @@ class PositionDataTests(unittest.TestCase):
         self.assertEqual(rows[("U13504061", 1)]["daily_pnl"], 5.0)
         self.assertEqual(rows[("U19309952", 2)]["currency"], "GBP")
         self.assertEqual(ib.account_update_requests, self.accounts_for_positions(ib))
+        self.assertEqual(ib.account_update_cancelled, self.accounts_for_positions(ib))
         self.assertEqual(len(ib.pnl_requests), 3)
         self.assertEqual(ib.cancelled, ib.pnl_requests)
+
+    def test_account_update_subscriptions_are_sequential(self):
+        ib = SingleAccountUpdateIB()
+        with patch.object(ib_service, "ib_session", return_value=nullcontext(ib)):
+            payload = ib_service.get_positions(self.profile)
+
+        self.assertEqual(len(payload["rows"]), 3)
+        self.assertEqual(ib.account_update_cancelled, self.accounts_for_positions(ib))
+        self.assertIsNone(ib.active_account)
+
+    def test_pnl_request_error_cleans_account_and_completed_subscriptions(self):
+        ib = FakeIB()
+        ib.fail_pnl_accounts = {"U19309952"}
+        with patch.object(ib_service, "ib_session", return_value=nullcontext(ib)):
+            ib_service.get_positions(self.profile)
+
+        self.assertEqual(ib.account_update_cancelled, self.accounts_for_positions(ib))
+        self.assertEqual(
+            ib.cancelled,
+            [("U13504061", "", 1)],
+        )
+
+    def test_pnl_timeout_cleans_all_subscriptions(self):
+        ib = FakeIB()
+        ib.fail_sleep = True
+        with patch.object(ib_service, "ib_session", return_value=nullcontext(ib)):
+            with self.assertRaises(TimeoutError):
+                ib_service.get_positions(self.profile)
+
+        self.assertEqual(ib.account_update_cancelled, self.accounts_for_positions(ib))
+        self.assertEqual(ib.cancelled, ib.pnl_requests)
+
+    def test_account_update_timeout_is_bounded_by_session_request_timeout(self):
+        SessionIB.instances = []
+        SessionIB.collision_ids = set()
+        SessionIB.connection_error = None
+        SessionIB.timeout_account_updates = True
+        with patch.object(ib_service, "_ib_class", return_value=(SessionIB, object())):
+            with patch.object(secrets, "randbelow", return_value=0):
+                SessionIB.instances.clear()
+                payload = ib_service.get_positions(self.profile, timeout=0.25)
+
+        ib = SessionIB.instances[0]
+        self.assertEqual(len(payload["rows"]), 3)
+        self.assertEqual(ib.seen_request_timeout, 0.25)
+        self.assertEqual(ib.disconnect_calls, 1)
+        self.assertEqual(ib.account_update_cancelled, self.accounts_for_positions(ib))
+        SessionIB.timeout_account_updates = False
+
+    def test_client_id_collision_retries_once_with_a_new_random_id(self):
+        SessionIB.instances = []
+        SessionIB.collision_ids = {1}
+        SessionIB.connection_error = None
+        with patch.object(ib_service, "_ib_class", return_value=(SessionIB, object())):
+            with patch.object(secrets, "randbelow", side_effect=[0, 1]):
+                with ib_service.ib_session(self.profile, timeout=0.25) as ib:
+                    self.assertIsInstance(ib, SessionIB)
+
+        self.assertEqual(
+            [instance.connect_calls[0]["client_id"] for instance in SessionIB.instances],
+            [1, 2],
+        )
+        self.assertEqual([instance.disconnect_calls for instance in SessionIB.instances], [1, 1])
+
+    def test_unrelated_connection_error_is_not_retried(self):
+        SessionIB.instances = []
+        SessionIB.collision_ids = set()
+        SessionIB.connection_error = ConnectionError("authentication failed")
+        with patch.object(ib_service, "_ib_class", return_value=(SessionIB, object())):
+            with patch.object(secrets, "randbelow", return_value=0):
+                with self.assertRaisesRegex(ConnectionError, "authentication failed"):
+                    with ib_service.ib_session(self.profile, timeout=0.25):
+                        pass
+
+        self.assertEqual(len(SessionIB.instances), 1)
+        self.assertEqual(SessionIB.instances[0].disconnect_calls, 1)
+
+    def test_successful_one_shot_command_disconnects(self):
+        SessionIB.instances = []
+        SessionIB.collision_ids = set()
+        SessionIB.connection_error = None
+        with patch.object(ib_service, "_ib_class", return_value=(SessionIB, object())):
+            with patch.object(secrets, "randbelow", return_value=0):
+                payload = ib_service.get_account_summary(self.profile, timeout=0.25)
+
+        self.assertEqual(payload["selected_account"], "U13504061")
+        self.assertEqual(len(SessionIB.instances), 1)
+        self.assertEqual(SessionIB.instances[0].disconnect_calls, 1)
+
+    def test_streaming_mode_is_explicitly_marked_and_still_releases_on_exit(self):
+        SessionIB.instances = []
+        SessionIB.collision_ids = set()
+        SessionIB.connection_error = None
+        with patch.object(ib_service, "_ib_class", return_value=(SessionIB, object())):
+            with patch.object(secrets, "randbelow", return_value=0):
+                with ib_service.ib_session(self.profile, timeout=0.25, streaming=True) as ib:
+                    self.assertTrue(getattr(ib, "_ibkr_cli_streaming"))
+
+        self.assertEqual(SessionIB.instances[0].disconnect_calls, 1)
 
     def test_position_identity_keeps_accounts_currencies_and_contracts_distinct(self):
         ib = FakeIB()
