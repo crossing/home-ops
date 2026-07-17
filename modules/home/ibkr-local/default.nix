@@ -480,6 +480,9 @@ let
         Description = "Headless IB Gateway (${name})";
         After = [ cfg.gateway.sessionTarget ];
         PartOf = [ cfg.gateway.sessionTarget ];
+        # Reauthentication is the only supported path that can recreate the
+        # volatile runtime IBC config before starting a Gateway service.
+        X-SwitchMethod = "keep-old";
       };
 
       Service = {
