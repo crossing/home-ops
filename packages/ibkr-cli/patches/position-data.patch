@@ -1,6 +1,16 @@
 --- a/src/ibkr_cli/ib_service.py
 +++ b/src/ibkr_cli/ib_service.py
-@@ -70,0 +71,56 @@
+@@ -3,6 +3,7 @@
+ import logging
+ import math
+ import re
++import secrets
+ import time
+ import xml.etree.ElementTree as ET
+ from contextlib import contextmanager
+@@ -70,0 +71,177 @@
++
++
 +def _first_number(*values: object) -> Optional[float]:
 +    for value in values:
 +        normalized = _normalize_number(value)
@@ -9,22 +19,139 @@
 +    return None
 +
 +
++CLIENT_ID_MIN = 1
++CLIENT_ID_MAX = 32767
++CLIENT_ID_ATTEMPTS = 5
++
++
++def _is_client_id_collision(value: object) -> bool:
++    if isinstance(value, BaseException):
++        values = [str(value), *(str(arg) for arg in value.args)]
++        cause = value.__cause__ or value.__context__
++        if cause is not None:
++            values.append(str(cause))
++    else:
++        values = [str(value)]
++    text = " ".join(values).lower()
++    return bool(
++        re.search(r"\b326\b", text)
++        or ("client id" in text and "already in use" in text)
++        or ("clientid" in text and "already in use" in text)
++    )
++
++
++def _random_client_id(used: set[int]) -> int:
++    for _ in range(CLIENT_ID_MAX - CLIENT_ID_MIN + 1):
++        candidate = secrets.randbelow(CLIENT_ID_MAX - CLIENT_ID_MIN + 1) + CLIENT_ID_MIN
++        if candidate not in used:
++            return candidate
++    raise RuntimeError("Unable to select a unique IBKR API client ID")
++
++
++def _disconnect_ib(ib: object) -> None:
++    disconnect = getattr(ib, "disconnect", None)
++    if callable(disconnect):
++        try:
++            disconnect()
++        except Exception:
++            logging.getLogger(__name__).debug("Ignoring IBKR disconnect failure", exc_info=True)
++
++
++def _connect_ib(
++    ib_class: object,
++    startup_fetch_none: object,
++    profile: ProfileConfig,
++    timeout: float,
++    readonly: bool,
++) -> object:
++    used: set[int] = set()
++    last_collision: Optional[BaseException] = None
++    for attempt in range(CLIENT_ID_ATTEMPTS):
++        client_id = _random_client_id(used)
++        used.add(client_id)
++        ib = ib_class()
++        setattr(ib, "RequestTimeout", timeout)
++        collision_messages: List[str] = []
++        events: List[object] = []
++
++        def on_ib_error(*messages: object) -> None:
++            if any(_is_client_id_collision(message) for message in messages):
++                collision_messages.append(" ".join(str(message) for message in messages))
++
++        for event in (
++            getattr(ib, "errorEvent", None),
++            getattr(getattr(ib, "client", None), "apiError", None),
++        ):
++            if event is not None and hasattr(event, "connect"):
++                event.connect(on_ib_error)
++                events.append(event)
++        try:
++            with _suppress_ib_async_logs():
++                ib.connect(
++                    profile.host,
++                    profile.port,
++                    clientId=client_id,
++                    timeout=timeout,
++                    readonly=readonly,
++                    fetchFields=startup_fetch_none,
++                )
++            setattr(ib, "_ibkr_cli_client_id", client_id)
++            return ib
++        except BaseException as exc:
++            collision = bool(collision_messages) or _is_client_id_collision(exc)
++            if collision:
++                last_collision = exc
++            else:
++                raise
++        finally:
++            for event in events:
++                if hasattr(event, "disconnect"):
++                    event.disconnect(on_ib_error)
++            if not getattr(ib, "_ibkr_cli_client_id", None):
++                _disconnect_ib(ib)
++
++        if last_collision is None or attempt + 1 >= CLIENT_ID_ATTEMPTS:
++            break
++
++    raise ConnectionError(
++        f"IBKR rejected {CLIENT_ID_ATTEMPTS} unique API client IDs; giving up"
++    ) from last_collision
++
++
++def _cancel_account_updates(ib: object, account: str) -> None:
++    cancel = getattr(ib, "cancelAccountUpdates", None)
++    if callable(cancel):
++        cancel(account)
++        return
++    client = getattr(ib, "client", None)
++    request = getattr(client, "reqAccountUpdates", None)
++    if callable(request):
++        request(False, account)
++
++
 +def _position_market_data(
 +    ib: object, positions: Sequence[object], timeout: float
 +) -> Dict[Tuple[str, int], Dict[str, Optional[float]]]:
 +    """Load read-only portfolio and per-contract P&L data for positions."""
 +    accounts = sorted({str(position.account) for position in positions})
-+    for account in accounts:
-+        ib.reqAccountUpdates(account)
-+
++    active_account: Optional[str] = None
 +    portfolio_by_key: Dict[Tuple[str, int], object] = {}
-+    for item in ib.portfolio():
-+        contract = item.contract
-+        portfolio_by_key[(str(item.account), int(contract.conId))] = item
-+
 +    pnl_by_key: Dict[Tuple[str, int], object] = {}
 +    subscriptions: List[Tuple[str, int]] = []
 +    try:
++        for account in accounts:
++            active_account = account
++            try:
++                ib.reqAccountUpdates(account)
++                for item in ib.portfolio(account):
++                    contract = item.contract
++                    portfolio_by_key[(str(item.account), int(contract.conId))] = item
++            except TimeoutError:
++                pass
++            finally:
++                _cancel_account_updates(ib, account)
++                active_account = None
++
 +        for position in positions:
 +            key = (str(position.account), int(position.contract.conId))
 +            try:
@@ -37,6 +164,8 @@
 +    finally:
 +        for account, con_id in subscriptions:
 +            ib.cancelPnLSingle(account, "", con_id)
++        if active_account is not None:
++            _cancel_account_updates(ib, active_account)
 +
 +    result: Dict[Tuple[str, int], Dict[str, Optional[float]]] = {}
 +    for position in positions:
@@ -57,24 +186,135 @@
 +            "daily_pnl": _first_number(getattr(pnl, "dailyPnL", None)),
 +        }
 +    return result
-@@ -260,0 +261,2 @@
+@@ -126,18 +291,17 @@
+ @contextmanager
+-def ib_session(profile: ProfileConfig, timeout: float = 4.0, readonly: bool = True) -> Iterator[object]:
++def ib_session(
++    profile: ProfileConfig,
++    timeout: float = 4.0,
++    readonly: bool = True,
++    streaming: bool = False,
++) -> Iterator[object]:
++    """Run a bounded IBKR session; only explicitly streaming callers may opt in."""
+     ib_class, startup_fetch_none = _ib_class()
+-    ib = ib_class()
++    ib = None
+     try:
+-        with _suppress_ib_async_logs():
+-            ib.connect(
+-                profile.host,
+-                profile.port,
+-                clientId=profile.client_id,
+-                timeout=timeout,
+-                readonly=readonly,
+-                fetchFields=startup_fetch_none,
+-            )
++        ib = _connect_ib(ib_class, startup_fetch_none, profile, timeout, readonly)
++        setattr(ib, "_ibkr_cli_streaming", streaming)
+         yield ib
+     finally:
+-        if getattr(ib, "isConnected", None) and ib.isConnected():
+-            ib.disconnect()
++        if ib is not None:
++            _disconnect_ib(ib)
+@@ -146,44 +308,33 @@
+ def check_api_connection(profile: ProfileConfig, timeout: float = 4.0) -> ApiConnectionResult:
+-    ib_class, startup_fetch_none = _ib_class()
+-    ib = ib_class()
+     started = time.perf_counter()
++    client_id = profile.client_id
+     try:
+-        with _suppress_ib_async_logs():
+-            ib.connect(
+-                profile.host,
+-                profile.port,
+-                clientId=profile.client_id,
++        with ib_session(profile, timeout=timeout, readonly=True) as ib:
++            client_id = getattr(ib, "_ibkr_cli_client_id", client_id)
++            latency_ms = round((time.perf_counter() - started) * 1000, 2)
++            managed_accounts = list(ib.managedAccounts())
++            server_version = None
++            client = getattr(ib, "client", None)
++            if client and hasattr(client, "serverVersion"):
++                server_version = client.serverVersion()
++            return ApiConnectionResult(
++                ok=True,
++                host=profile.host,
++                port=profile.port,
++                client_id=client_id,
+                 timeout=timeout,
+-                readonly=True,
+-                fetchFields=startup_fetch_none,
++                managed_accounts=managed_accounts,
++                latency_ms=latency_ms,
++                server_version=server_version,
+             )
+-        latency_ms = round((time.perf_counter() - started) * 1000, 2)
+-        managed_accounts = list(ib.managedAccounts())
+-        server_version = None
+-        client = getattr(ib, "client", None)
+-        if client and hasattr(client, "serverVersion"):
+-            server_version = client.serverVersion()
+-        return ApiConnectionResult(
+-            ok=True,
+-            host=profile.host,
+-            port=profile.port,
+-            client_id=profile.client_id,
+-            timeout=timeout,
+-            managed_accounts=managed_accounts,
+-            latency_ms=latency_ms,
+-            server_version=server_version,
+-        )
+     except Exception as exc:
+         return ApiConnectionResult(
+             ok=False,
+             host=profile.host,
+             port=profile.port,
+-            client_id=profile.client_id,
++            client_id=client_id,
+             timeout=timeout,
+             managed_accounts=[],
+             error=str(exc),
+         )
+-    finally:
+-        if getattr(ib, "isConnected", None) and ib.isConnected():
+-            ib.disconnect()
+ def _resolve_account(ib: object, requested_account: Optional[str]) -> tuple[List[str], str]:
+@@ -261,0 +413,1 @@
 +        market_data = _position_market_data(ib, positions, timeout)
-+
-@@ -264,0 +265,1 @@
+@@ -264,0 +414,1 @@
 +            metrics = market_data[(str(position.account), int(contract.conId))]
-@@ -275,0 +276,1 @@
+@@ -275,0 +416,1 @@
 +                    **metrics,
+@@ -1199,0 +1356,1 @@
++    """Explicitly streaming quote command; its session is always released on exit."""
+@@ -1212,1 +1369,1 @@
+-    with ib_session(profile, timeout=timeout) as ib:
++    with ib_session(profile, timeout=timeout, streaming=True) as ib:
+         qualified = ib.qualifyContracts(contract)
+         if not qualified:
 --- a/src/ibkr_cli/app.py
 +++ b/src/ibkr_cli/app.py
-@@ -287,0 +288,5 @@
+@@ -285,6 +285,11 @@
+     table.add_column("Currency")
+     table.add_column("Position", justify="right")
+     table.add_column("Avg Cost", justify="right")
 +    table.add_column("Market Price", justify="right")
 +    table.add_column("Market Value", justify="right")
 +    table.add_column("Unrealized PnL", justify="right")
 +    table.add_column("Realized PnL", justify="right")
 +    table.add_column("Daily PnL", justify="right")
-@@ -297,0 +298,5 @@
+     for row in rows:
+         table.add_row(
+             str(row["account"]),
+@@ -295,5 +300,10 @@
+             str(row["currency"]),
+             str(row["position"]),
+             str(row["avg_cost"]),
 +            "" if row["market_price"] is None else str(row["market_price"]),
 +            "" if row["market_value"] is None else str(row["market_value"]),
 +            "" if row["unrealized_pnl"] is None else str(row["unrealized_pnl"]),
 +            "" if row["realized_pnl"] is None else str(row["realized_pnl"]),
 +            "" if row["daily_pnl"] is None else str(row["daily_pnl"]),
+         )
+     return table
