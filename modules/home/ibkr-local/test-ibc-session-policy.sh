@@ -52,8 +52,8 @@ trap cleanup EXIT
 [[ $(stat -c '%a' "$runtime_dir") == 700 ]] \
   || fail "rendered IBC runtime directory must be mode 0700"
 
-grep -Fxq 'ExistingSessionDetectedAction=primaryoverride' "$config" \
-  || fail "rendered IBC config must displace an existing same-username session"
+grep -Fxq 'ExistingSessionDetectedAction=primary' "$config" \
+  || fail "rendered IBC config must select IBC's primary session policy"
 grep -Fxq 'ReloginAfterSecondFactorAuthenticationTimeout=no' "$config" \
   || fail "rendered IBC config must not retry second-factor authentication without bound"
 grep -Fxq 'SecondFactorAuthenticationExitInterval=60' "$config" \
@@ -65,7 +65,7 @@ grep -Fq 'TrustedIPs=127.0.0.1' "$module" \
   || fail "Gateway API trust policy must remain localhost-only"
 grep -Fq "trap '[[ -z \"\${runtime_dir:-}\" ]] || rm -rf -- \"\$runtime_dir\"' EXIT" "$cli" \
   || fail "renderer must clean up ephemeral credentials on failure"
-grep -Fq "ExistingSessionDetectedAction=primaryoverride" "$module" \
-  || fail "Gateway reauthentication must fail closed unless displacement policy is rendered"
+grep -Fq "grep -qx 'ExistingSessionDetectedAction=primary'" "$module" \
+  || fail "Gateway reauthentication must fail closed unless the primary session policy is rendered"
 
-printf 'PASS: IBC renderer displaces same-username sessions and retains gateway safety controls\n'
+printf 'PASS: IBC renderer selects the primary session policy and retains gateway safety controls\n'
