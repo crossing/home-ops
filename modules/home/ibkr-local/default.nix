@@ -437,8 +437,8 @@ let
         || die "rendered IBC config permits unbounded second-factor relogin"
       ${pkgs.gnugrep}/bin/grep -qx 'SecondFactorAuthenticationExitInterval=60' "$rendered_config" \
         || die "rendered IBC config is missing the second-factor exit interval"
-      ${pkgs.gnugrep}/bin/grep -qx 'ExistingSessionDetectedAction=primaryoverride' "$rendered_config" \
-        || die "rendered IBC config would not displace an existing same-username session"
+      ${pkgs.gnugrep}/bin/grep -qx 'ExistingSessionDetectedAction=primary' "$rendered_config" \
+        || die "rendered IBC config is missing the primary session policy"
 
       ${pkgs.systemd}/bin/systemctl --user stop ${lib.escapeShellArg serviceName} \
         || die "failed to stop the existing Gateway service"
