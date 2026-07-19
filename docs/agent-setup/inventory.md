@@ -1,6 +1,6 @@
 # Agent capability inventory
 
-Generated: 2026-07-12. Paths are user-relative unless absolute. A content hash
+Generated: 2026-07-19. Paths are user-relative unless absolute. A content hash
 identifies bytes; it is not a trust verdict. Plugin cache presence does not by
 itself prove that a plugin is enabled. `latest` cache aliases are excluded.
 
@@ -75,6 +75,13 @@ The two personal Codex-owned workflow hashes are:
 `.curator_backups` are agent state rather than independent skills and must not
 be treated as mutable review targets or copied into the ledger.
 
+The 2026-07-19 native check/audit also reported a separate curator registration
+named `1password` from `clawhub`: an upstream update is available and its
+expected `1password` executable is missing. This is protected curator state,
+not a discovered local skill, so it was not changed. Reconcile its ownership
+through Hermes before either installing an alias/runtime or removing the stale
+registration.
+
 ## Antigravity/Gemini skills
 
 The current native tree contains the bundled `antigravity_guide` under
@@ -84,6 +91,12 @@ skills under `~/.gemini/config/plugins/chrome-devtools-plugin/skills`:
 `memory-leak-debugging`, and `troubleshooting`. These are owned by Antigravity
 or its plugin installer; review enabled state and compatibility, but do not
 rewrite bundled/plugin content as if it were a personal mutable skill.
+
+All six current files have `name` and `description` front matter. The packaged
+`antigravity` executable resolves from Nix, but its `--version`, `--help`, and
+skills-list attempts start the GUI/language server rather than returning a
+safe native listing in this environment. The bounded probes were stopped; the
+owned-tree metadata remains the available discovery evidence.
 
 ## Desired Codex plugins
 
@@ -125,20 +138,47 @@ loader probe.
 | `openai-curated-remote/codex-security/0.1.11` | `attack-path-analysis`, `deep-security-scan`, `finding-discovery`, `fix-finding`, `propose-security-hardening`, `security-diff-scan`, `security-scan`, `threat-model`, `track-findings`, `triage-finding`, `validation`, `vulnerability-writeup` |
 | `openai-curated-remote/github/0.1.8-2841cf9749ae` | `gh-address-comments`, `gh-fix-ci`, `github`, `yeet` |
 | `openai-curated-remote/gmail/0.1.5` | `gmail`, `gmail-inbox-triage` |
-| `openai-curated-remote/google-drive/0.1.8` | `google-docs`, `google-drive`, `google-drive-comments`, `google-sheets`, `google-slides` |
+| `openai-curated-remote/google-drive/0.1.10` | `google-docs`, `google-drive`, `google-drive-comments`, `google-sheets`, `google-slides` |
 | `openai-curated-remote/openai-developers/1.2.3` | `agents-sdk`, `build-chatgpt-app`, `chatgpt-app-submission`, `openai-api-troubleshooting`, `openai-platform-api-key` |
 | `openai-curated-remote/openai-templates/0.1.0` | `artifact-template-analytics-dashboard`, `artifact-template-business-review`, `artifact-template-design-report`, `artifact-template-experiment-analysis`, `artifact-template-financial-budget`, `artifact-template-investment-committee-memo`, `artifact-template-legal-memorandum`, `artifact-template-market-trends-report`, `artifact-template-minimal-letterhead`, `artifact-template-operating-calendar`, `artifact-template-operating-review`, `artifact-template-project-kickoff`, `artifact-template-project-tracker`, `artifact-template-sales-pipeline`, `artifact-template-simple-dark-mode`, `artifact-template-simple-light-mode`, `artifact-template-strategy-memorandum`, `artifact-template-system-design`, `artifact-template-team-alignment`, `artifact-template-three-statement-forecast` |
 | `openai-curated-remote/public-equity-investing/0.1.31` | `catalyst-calendar`, `company-tearsheet`, `comps-valuation`, `dcf-model-builder`, `deck-report-qc`, `earnings-deep-dive`, `earnings-preview`, `economic-impact-report`, `equity-model-update`, `event-driven-analyzer`, `financials-normalizer`, `idea-generation`, `initiating-coverage`, `long-short-pitch`, `meeting-prep`, `memo-builder`, `model-audit-tieout`, `portfolio-risk-management`, `public-equity-investing`, `scenario-sensitivity-generator`, `thesis-tracker`, `three-statement-model-builder`, `user-context` |
-| `openai-curated-remote/slack/0.1.4` | `slack`, `slack-channel-summarization`, `slack-daily-digest`, `slack-notification-triage`, `slack-outgoing-message`, `slack-reply-drafting` |
-| `openai-primary-runtime/documents/26.709.11516` | `documents` |
-| `openai-primary-runtime/pdf/26.709.11516` | `pdf` |
-| `openai-primary-runtime/presentations/26.709.11516` | `presentations` |
-| `openai-primary-runtime/spreadsheets/26.709.11516` | `excel-live-control`, `spreadsheets` |
-| `openai-primary-runtime/template-creator/26.709.11516` | `template-creator` |
+| `openai-primary-runtime/documents/26.715.12143` | `documents` |
+| `openai-primary-runtime/pdf/26.715.12143` | `pdf` |
+| `openai-primary-runtime/presentations/26.715.12143` | `presentations` |
+| `openai-primary-runtime/spreadsheets/26.715.12143` | `excel-live-control`, `spreadsheets` |
+| `openai-primary-runtime/template-creator/26.715.12143` | `template-creator` |
 | `superpowers-dev/superpowers/6.1.1` | `brainstorming`, `dispatching-parallel-agents`, `executing-plans`, `finishing-a-development-branch`, `receiving-code-review`, `requesting-code-review`, `subagent-driven-development`, `systematic-debugging`, `test-driven-development`, `using-git-worktrees`, `using-superpowers`, `verification-before-completion`, `writing-plans`, `writing-skills` |
 
-Current baseline: 24 concrete plugin versions and 105 cached `SKILL.md` files. The
-browser and Chrome caches each retain an older and a current concrete version.
+Current baseline: 20 concrete plugin versions that expose skills and 99 cached
+`SKILL.md` files. The browser and Chrome caches each retain an older and a
+current concrete version. The former Slack cache is absent.
+
+## 2026-07-19 review
+
+All 16 shared mutable-skill hashes and both personal Codex-workflow hashes
+match this ledger; no mutable skill was added, updated, or deleted, so no local
+backup or rollback action was required. Codex's native loader exposed the ten
+enabled personal entries (including the external `1password-secure` target),
+both Codex workflows, and all 14 Superpowers skills; all six intentionally
+disabled GWS entries remained absent. Its enabled plugin set matches the
+reconstruction target.
+
+Upstream Git HEADs have advanced for `agent-browser`
+(`6ede7a9470ac4b681cabf838af8668b9aa99e957`), `find-skills`
+(`777599e1159e401b11ce4c8a57c20f09a8f1596e`), GWS
+(`a3768d0e82ad83cca2da97724e46bea4ff0e6dbd`), and RTK
+(`f9d8c775b1e7f94f449c400f4130410170e590ad`). `para-second-brain` remains at
+its recorded revision and Superpowers remains at
+`d884ae04edebef577e82ff7c4e143debd0bbec99`. No update was applied: local
+adaptations and the GWS disabled-registration policy require a separate,
+reviewed change with an exact rollback backup.
+
+Runtime proposal (not applied): establish whether Hermes' protected
+`1password` curator registration genuinely requires an executable named
+`1password` rather than the Nix-managed `op` command. If it does, add the
+compatibility executable declaratively through Home Manager; otherwise use the
+Hermes owner workflow to remove the stale registration. Do not change Nix
+packages or curator state until provenance is resolved.
 
 ## Reproducible checks
 
