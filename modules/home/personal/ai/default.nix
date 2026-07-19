@@ -3,7 +3,7 @@
   imports = [
     ./codex.nix
     ./google.nix
-    ./hermes.nix
+    ./opencode.nix
   ];
 
   config = lib.mkIf config.profiles.personal.enable {
