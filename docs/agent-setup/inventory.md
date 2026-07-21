@@ -29,7 +29,6 @@ targets based on the executables and modules they actually install.
 | gws-keep | mutable directory | GWS 0.22.5 | `gws` | `95a99760e826ef94de781de696922c696a8c0bddf054941151d3116fc3448c8b` |
 | incremental-editing | mutable directory | locally maintained compact rewrite; prior baseline was the addyosmani revision above, path `skills/incremental-implementation` | none | `daeca7f466d499fff41e34984bf0200cfc1c82a6dc90791dc66f37367e725f13` |
 | para-second-brain | mutable directory with references/scripts/tests; migrated from HM | `https://github.com/robdefeo/agent-skills.git@0b9da00edd625e9978e5f25813f95704e57600c7`, path `skills/para-second-brain` | connector-specific | `ccfe5c64be57f0b66cd047fbd27403d70944b6c0df07af352212a3f4413c255c` |
-| rtk-cli-output | mutable directory; migrated from HM | local body in baseline Git history, based on `https://github.com/rtk-ai/rtk.git@d3553fb7ee45b901c46f6c063d8ea68ed0e96dfe` | `rtk` | `3916c9aedacf5c9eb90632832e250223a51ce0400d4f46db4aa043796fd35c5f` |
 | safe-op | mutable directory with `agents/` | skill text locally maintained; runtime from external `github:crossing/safe-cli` flake input | `safe-op`, `op` | `d458d38e4b2b1b6b4fb2f4cf6cfb9b235fcfc870a741fd24b4891b65b68cecad` |
 | state-and-handoff | mutable directory | locally maintained compact state-transfer workflow; prior baseline was the addyosmani revision above, path `skills/planning-and-task-breakdown` | none | `2f4ce86be9674d01203f10cc76a63b5914f6b4de0ed0326e178edb60526a3479` |
 
